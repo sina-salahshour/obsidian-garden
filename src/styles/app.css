@@ -294,6 +294,43 @@
   }
 }
 
+/* Glass edge: the cursor light also catches the card's 1px border, brighter than the fill, like
+   light hitting the edge of a pane of glass. The border is painted as a background layer
+   (border-box) under the surface (padding-box), so it follows border-radius and overflow clips.
+   Pair with `spotlight` (which sets --mx/--my) and drop border / bg classes on the card. */
+@property --edge-glow {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+@property --edge {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+@utility glass-edge {
+  --edge: var(--line);
+  /* a touch thicker than a hairline so the lit edge reads */
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    radial-gradient(
+        11rem circle at var(--mx, 50%) var(--my, 0%),
+        color-mix(in oklab, var(--accent) var(--edge-glow), transparent),
+        transparent 70%
+      )
+      border-box,
+    linear-gradient(var(--edge), var(--edge)) border-box;
+  transition:
+    --edge-glow 0.45s var(--ease-out-expo),
+    --edge 0.3s var(--ease-out-expo),
+    box-shadow 0.3s var(--ease-out-expo);
+  &:hover {
+    --edge: var(--line-strong);
+    --edge-glow: 80%;
+  }
+}
+
 @utility scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;

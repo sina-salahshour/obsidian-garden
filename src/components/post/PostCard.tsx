@@ -37,7 +37,7 @@ export function PostCard({
     <motion.article
       {...hover}
       className={cn(
-        "spotlight group relative rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] duration-300 hover:border-line-strong hover:shadow-[var(--shadow-md)] sm:p-6",
+        "spotlight glass-edge group relative rounded-2xl p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] sm:p-6",
         className,
       )}
     >
@@ -111,7 +111,7 @@ export function PostRow({
     <motion.div
       {...hover}
       className={cn(
-        "spotlight group relative flex items-start gap-3 rounded-xl border border-line bg-surface px-4 py-3.5 transition-colors hover:border-line-strong",
+        "spotlight glass-edge group relative flex items-start gap-3 rounded-xl px-4 py-3.5",
         className,
       )}
     >

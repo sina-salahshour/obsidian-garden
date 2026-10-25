@@ -43,20 +43,22 @@ export function LessonTile({
     <motion.article
       {...hover}
       className={cn(
-        "spotlight group relative isolate flex h-full flex-col overflow-hidden border border-line bg-surface shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] duration-300 hover:border-line-strong hover:shadow-[var(--shadow-md)]",
+        "spotlight glass-edge group relative isolate flex h-full flex-col overflow-hidden shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]",
         compact ? "rounded-xl" : "rounded-2xl",
         className,
       )}
     >
       {/* Slot on the cover's own paper: no lighter tile band can show at a subpixel seam, and the
-          corners are concentric with the tile's (radius minus its 1px border). */}
-      <div className={cn("bg-sunken", compact ? "rounded-t-[11px]" : "rounded-t-[15px]")}>
+          corners are concentric with the tile's (radius minus its 1.5px border). */}
+      <div className={cn("bg-sunken", compact ? "rounded-t-[10.5px]" : "rounded-t-[14.5px]")}>
         <SeriesCover
           src={folder.cover}
           svg={folder.coverSvg}
           title={folder.title}
           ring={false}
-          className={compact ? "aspect-[21/9] rounded-t-[11px]" : "aspect-[16/9] rounded-t-[15px]"}
+          className={
+            compact ? "aspect-[21/9] rounded-t-[10.5px]" : "aspect-[16/9] rounded-t-[14.5px]"
+          }
         />
       </div>
       <motion.div

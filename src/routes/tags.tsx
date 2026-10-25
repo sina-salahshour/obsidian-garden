@@ -54,7 +54,7 @@ function TagsPage() {
                 whileHover={{ y: -2 }}
                 transition={spring.soft}
                 {...spotlightHandlers()}
-                className="spotlight group relative rounded-xl border border-line bg-surface transition-colors hover:border-accent-line"
+                className="spotlight glass-edge group relative rounded-xl border"
               >
                 <Link to="/posts" search={{ tag: t.tag }} className="block px-4 pt-3.5 pb-3">
                   <span className="flex items-baseline justify-between gap-3">

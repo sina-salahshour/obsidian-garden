@@ -29,7 +29,7 @@ export function SeriesCard({
     <motion.article
       {...hover}
       className={cn(
-        "spotlight group relative isolate grid overflow-hidden rounded-3xl border border-line bg-surface shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] duration-300 hover:border-line-strong hover:shadow-[var(--shadow-lg)] md:grid-cols-[1.15fr_1fr]",
+        "spotlight glass-edge group relative isolate grid overflow-hidden rounded-3xl shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] md:grid-cols-[1.15fr_1fr]",
         className,
       )}
     >
