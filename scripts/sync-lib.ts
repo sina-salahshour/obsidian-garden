@@ -71,6 +71,8 @@ export interface SplitNote {
   yaml: string | null;
   /** parsed frontmatter (empty object when absent or invalid) */
   data: Record<string, unknown>;
+  /** YAML parse error, when the fence is present but its content is not valid YAML */
+  error?: string;
   body: string;
   /** line ending used by the fence */
   eol: string;
@@ -84,15 +86,16 @@ export function splitFrontmatter(source: string): SplitNote {
   if (!m) return { yaml: null, data: {}, body: text, eol: "\n" };
   const yaml = m[2] ?? "";
   let data: Record<string, unknown> = {};
+  let error: string | undefined;
   try {
     const parsed: unknown = parseYaml(yaml);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       data = parsed as Record<string, unknown>;
     }
-  } catch {
-    data = {};
+  } catch (e) {
+    error = (e instanceof Error ? e.message : String(e)).split("\n")[0];
   }
-  return { yaml, data, body: text.slice(m[0].length), eol: m[1] ?? "\n" };
+  return { yaml, data, error, body: text.slice(m[0].length), eol: m[1] ?? "\n" };
 }
 
 function truthy(value: unknown): boolean {

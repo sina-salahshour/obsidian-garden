@@ -10,7 +10,7 @@ import {
   type SimulationNodeDatum,
 } from "d3-force";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { GraphData } from "~/content/types";
 import { cn } from "~/lib/cn";
 import { mixHex, withAlpha } from "~/lib/color";
@@ -33,6 +33,8 @@ interface Engine {
   fit: () => void;
   flyTo: (id: string) => void;
   setFilter: (group: string | null) => void;
+  /** show only notes with this tag (others fade out and stop taking pointer input) */
+  setTag: (tag: string | null) => void;
   setSelected: (id: string | null) => void;
   repaint: () => void;
 }
@@ -75,6 +77,7 @@ export function GraphView({
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
+  const [tag, setTag] = useState<string | null>(null);
 
   const { nodes, links, neighbours, groups, byId } = useMemo(() => {
     const { groups, groupOf } = computeGroups(data.nodes);
@@ -170,6 +173,10 @@ export function GraphView({
     let hover: GNode | null = null;
     let sel: GNode | null = null;
     let groupFilter: string | null = null;
+    let tagFilter: string | null = null;
+    const shown = (n: GNode) => !tagFilter || n.tags.includes(tagFilter);
+    const shownSet = () => new Set(nodes.filter(shown).map((n) => n.id));
+    const vis = new Map<string, number>(); // eased 0..1 visibility per note (tag filter)
     let focusMix = 0; // eased 0..1 strength of the dimming
     let frame = 0;
     let t0 = performance.now();
@@ -244,10 +251,12 @@ export function GraphView({
       const anchor = cardAnchor.current;
       const n = hover ?? sel;
       if (!anchor) return;
-      if (!n || w < 640) {
+      if (w < 640) {
         anchor.style.transform = "";
         return;
       }
+      // no focus: keep the last position so the card fades out where it was, not at the corner
+      if (!n) return;
       const p = toScreen(n);
       const cw = 288;
       // clear the node's own label (drawn centred under it), flip to the left on the right half
@@ -284,6 +293,17 @@ export function GraphView({
       focusMix += (want - focusMix) * (reduce ? 1 : 1 - Math.pow(1 - 0.18, dt / 16.7));
       if (Math.abs(want - focusMix) < 0.01) focusMix = want;
       else animating = true;
+      const va = reduce ? 1 : 1 - Math.pow(1 - 0.2, dt / 16.7);
+      for (const n of nodes) {
+        const goal = shown(n) ? 1 : 0;
+        let v = vis.get(n.id) ?? 1;
+        if (v === goal) continue;
+        v += (goal - v) * va;
+        if (Math.abs(goal - v) < 0.01) v = goal;
+        else animating = true;
+        vis.set(n.id, v);
+      }
+      const visOf = (n: GNode) => vis.get(n.id) ?? 1;
 
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx!.clearRect(0, 0, w, h);
@@ -321,7 +341,7 @@ export function GraphView({
           : focus
             ? focus.has(s.id) && focus.has(t.id)
             : false;
-        const alpha = lit ? 0.85 : baseEdge * (focus ? dimA : 1);
+        const alpha = (lit ? 0.85 : baseEdge * (focus ? dimA : 1)) * Math.min(visOf(s), visOf(t));
         if (alpha < 0.02) continue;
         const color = lit ? (col.group.get((focusNode ?? s).group) ?? col.fg) : col.line;
         const { pts } = taperedEdge(s.x!, s.y!, t.x!, t.y!, (lit ? 1.6 : 1) * lw, 0.25 * lw);
@@ -337,9 +357,11 @@ export function GraphView({
 
       // nodes
       for (const n of nodes) {
+        const v = visOf(n);
+        if (v <= 0) continue;
         const inFocus = !focus || focus.has(n.id);
         const color = col.group.get(n.group) ?? col.muted;
-        ctx!.globalAlpha = inFocus ? 1 : Math.max(0.12, dimA);
+        ctx!.globalAlpha = (inFocus ? 1 : Math.max(0.12, dimA)) * v;
         if (n.group === START) {
           // series start: soft ring with a slow breathing pulse (static when reduced motion)
           const pulse = reduce ? 0.5 : (Math.sin(now / 700) + 1) / 2;
@@ -388,13 +410,14 @@ export function GraphView({
       for (const n of nodes.toSorted((p, q) => rank(q) - rank(p) || q.degree - p.degree)) {
         const inFocus = focus?.has(n.id);
         const al =
-          n === focusNode || n.group === START
+          visOf(n) *
+          (n === focusNode || n.group === START
             ? 1
             : inFocus
               ? 0.95
               : focus
                 ? zoomAlpha * dimA * 0.6
-                : Math.max(zoomAlpha, n.degree >= 8 ? 0.9 : 0.75);
+                : Math.max(zoomAlpha, n.degree >= 8 ? 0.9 : 0.75));
         if (al <= 0.03) continue;
         const label = n.title.length > 36 ? `${n.title.slice(0, 34)}…` : n.title;
         ctx!.font = `${n.group === START ? 650 : 500} ${fontWorld}px "Inter Variable", ui-sans-serif, system-ui, sans-serif`;
@@ -440,6 +463,7 @@ export function GraphView({
       let best: GNode | null = null;
       let bestD = Infinity;
       for (const n of nodes) {
+        if (!shown(n)) continue;
         const d = Math.hypot(n.x! - p.x, n.y! - p.y);
         if (d < n.r + slop / view.k && d < bestD) {
           best = n;
@@ -622,7 +646,7 @@ export function GraphView({
 
     engine.current = {
       zoomBy: (f) => zoomAt(w / 2, h / 2, f),
-      fit: () => fitTo(groupFilter ? focusSet() : null),
+      fit: () => fitTo(groupFilter ? focusSet() : tagFilter ? shownSet() : null),
       flyTo: (id) => {
         const n = byId.get(id);
         if (!n) return;
@@ -637,7 +661,17 @@ export function GraphView({
       },
       setFilter: (g) => {
         groupFilter = g;
-        fitTo(g ? focusSet() : null, 1.8);
+        fitTo(g ? focusSet() : tagFilter ? shownSet() : null, 1.8);
+      },
+      setTag: (t) => {
+        tagFilter = t;
+        if (hover && !shown(hover)) setHover(null);
+        if (sel && !shown(sel)) {
+          sel = null;
+          setSelected(null);
+        }
+        fitTo(t ? shownSet() : null, 1.8);
+        request();
       },
       setSelected: (id) => {
         sel = id ? (byId.get(id) ?? null) : null;
@@ -692,11 +726,16 @@ export function GraphView({
     <div ref={wrap} className={cn("relative touch-none overflow-hidden select-none", className)}>
       <canvas ref={canvas} aria-hidden="true" className="absolute inset-0 cursor-grab" />
 
-      {/* search: flies the camera to a note */}
+      {/* search: flies the camera to a note, or filters the graph to a tag */}
       <div className="pointer-events-none absolute inset-x-3 top-3 flex justify-end sm:inset-x-4 sm:top-4">
         <GraphSearch
           nodes={data.nodes}
           onPick={(id) => engine.current?.flyTo(id)}
+          tag={tag}
+          onTag={(t) => {
+            setTag(t);
+            engine.current?.setTag(t);
+          }}
           className="pointer-events-auto w-full sm:w-72"
         />
       </div>
@@ -854,23 +893,50 @@ function Legend({
   );
 }
 
+type SearchItem =
+  | { kind: "tag"; tag: string; count: number }
+  | { kind: "note"; node: GraphData["nodes"][number] };
+
+/**
+ * Combobox over notes and tags. A note flies the camera to it; a tag becomes a chip that filters
+ * the graph to the notes carrying it (and scopes the note results). Empty + focused suggests the
+ * most used tags. Backspace on an empty input, or the chip's ×, clears the tag.
+ */
 function GraphSearch({
   nodes,
   onPick,
+  tag,
+  onTag,
   className,
 }: {
   nodes: GraphData["nodes"];
   onPick: (id: string) => void;
+  tag: string | null;
+  onTag: (tag: string | null) => void;
   className?: string;
 }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const query = q.trim().toLowerCase();
-  const results = query
+  const tagCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const n of nodes) for (const t of n.tags) m.set(t, (m.get(t) ?? 0) + 1);
+    return [...m].toSorted((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [nodes]);
+  const query = q.trim().toLowerCase().replace(/^#/, "");
+  const tags: SearchItem[] = tagCounts
+    .filter(([t]) => t !== tag && (!query || t.includes(query)))
+    .toSorted(([a], [b]) =>
+      query ? Number(!a.startsWith(query)) - Number(!b.startsWith(query)) : 0,
+    )
+    .slice(0, query ? 4 : 6)
+    .map(([t, count]) => ({ kind: "tag", tag: t, count }));
+  const notes: SearchItem[] = query
     ? nodes
         .filter(
-          (n) => n.title.toLowerCase().includes(query) || n.tags.some((t) => t.includes(query)),
+          (n) =>
+            (!tag || n.tags.includes(tag)) &&
+            (n.title.toLowerCase().includes(query) || n.tags.some((t) => t.includes(query))),
         )
         .toSorted(
           (a, b) =>
@@ -878,17 +944,50 @@ function GraphSearch({
               Number(!b.title.toLowerCase().startsWith(query)) || b.degree - a.degree,
         )
         .slice(0, 6)
+        .map((node) => ({ kind: "note", node }))
     : [];
-  const pick = (id: string) => {
-    onPick(id);
+  const items = [...tags, ...notes];
+  const choose = (item: SearchItem) => {
+    if (item.kind === "tag") onTag(item.tag);
+    else onPick(item.node.id);
     setOpen(false);
     setQ("");
+    setActive(0);
   };
+  const optionId = (i: number) => `graph-search-opt-${i}`;
+  const section = (label: string) => (
+    <li
+      role="presentation"
+      className="px-3 pt-2 pb-1 text-[0.6875rem] font-medium tracking-wide text-subtle uppercase"
+    >
+      {label}
+    </li>
+  );
   return (
     <div className={cn("relative", className)}>
       <label className="flex h-10 items-center gap-2 rounded-full border border-line bg-surface/90 px-3.5 shadow-[var(--shadow-md)] backdrop-blur transition-colors focus-within:border-accent-line">
         <SearchIcon size={15} className="shrink-0 text-subtle" />
-        <span className="sr-only">Find a note in the graph</span>
+        <span className="sr-only">Find a note or tag in the graph</span>
+        <AnimatePresence initial={false}>
+          {tag && (
+            <motion.button
+              key={tag}
+              type="button"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.1 } }}
+              transition={spring.snappy}
+              onClick={() => onTag(null)}
+              aria-label={`Remove tag filter ${tag}`}
+              className="-ml-1 inline-flex h-7 max-w-[45%] shrink-0 items-center gap-1 rounded-full bg-accent-soft pr-1.5 pl-2.5 text-xs font-medium text-accent-strong transition-colors hover:bg-[color-mix(in_oklab,var(--accent)_18%,transparent)]"
+            >
+              <span className="truncate">#{tag}</span>
+              <span aria-hidden="true" className="text-sm leading-none">
+                ×
+              </span>
+            </motion.button>
+          )}
+        </AnimatePresence>
         <input
           value={q}
           onChange={(e) => {
@@ -901,22 +1000,26 @@ function GraphSearch({
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              setActive((i) => Math.min(i + 1, results.length - 1));
+              setOpen(true);
+              setActive((i) => Math.min(i + 1, items.length - 1));
             } else if (e.key === "ArrowUp") {
               e.preventDefault();
               setActive((i) => Math.max(i - 1, 0));
-            } else if (e.key === "Enter" && results[active]) {
+            } else if (e.key === "Enter" && items[active]) {
               e.preventDefault();
-              pick(results[active]!.id);
+              choose(items[active]!);
+            } else if (e.key === "Backspace" && !q && tag) {
+              onTag(null);
             } else if (e.key === "Escape") {
               setOpen(false);
               e.currentTarget.blur();
             }
           }}
-          placeholder="Find a note…"
+          placeholder={tag ? "Notes with this tag…" : "Find a note or tag…"}
           role="combobox"
-          aria-expanded={open && results.length > 0}
+          aria-expanded={open && items.length > 0}
           aria-controls="graph-search-list"
+          aria-activedescendant={open && items[active] ? optionId(active) : undefined}
           aria-autocomplete="list"
           autoComplete="off"
           spellCheck={false}
@@ -924,37 +1027,56 @@ function GraphSearch({
         />
       </label>
       <AnimatePresence>
-        {open && results.length > 0 && (
+        {open && items.length > 0 && (
           <motion.ul
             id="graph-search-list"
             role="listbox"
+            aria-label="Notes and tags"
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
             transition={spring.snappy}
-            className="absolute inset-x-0 top-12 isolate overflow-hidden rounded-2xl border border-line bg-surface/95 p-1 shadow-[var(--shadow-lg)] backdrop-blur"
+            className="absolute inset-x-0 top-12 isolate max-h-[min(24rem,60dvh)] overflow-y-auto rounded-2xl border border-line bg-surface/95 p-1 shadow-[var(--shadow-lg)] backdrop-blur"
           >
-            {results.map((n, i) => (
-              <li
-                key={n.id}
-                role="option"
-                aria-selected={i === active}
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  pick(n.id);
-                }}
-                onPointerMove={() => setActive(i)}
-                className="relative cursor-pointer rounded-xl px-3 py-2 text-sm"
-              >
-                {i === active && (
-                  <motion.span
-                    layoutId="graph-search-active"
-                    transition={spring.layout}
-                    className="absolute inset-0 z-0 rounded-xl bg-sunken"
-                  />
-                )}
-                <span className="relative z-10 line-clamp-1">{n.title}</span>
-              </li>
+            {items.map((item, i) => (
+              <Fragment key={item.kind === "tag" ? `t:${item.tag}` : item.node.id}>
+                {i === 0 && item.kind === "tag" && section(query ? "Tags" : "Popular tags")}
+                {item.kind === "note" &&
+                  (i === 0 || items[i - 1]!.kind === "tag") &&
+                  section("Notes")}
+                <li
+                  id={optionId(i)}
+                  role="option"
+                  aria-selected={i === active}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    choose(item);
+                  }}
+                  onPointerMove={() => setActive(i)}
+                  className="relative flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm"
+                >
+                  {i === active && (
+                    <motion.span
+                      layoutId="graph-search-active"
+                      transition={spring.layout}
+                      className="absolute inset-0 z-0 rounded-xl bg-sunken"
+                    />
+                  )}
+                  {item.kind === "tag" ? (
+                    <>
+                      <span className="relative z-10 min-w-0 flex-1 truncate">
+                        <span className="text-accent-strong">#</span>
+                        {item.tag}
+                      </span>
+                      <span className="relative z-10 shrink-0 text-xs text-subtle tabular-nums">
+                        {item.count}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="relative z-10 line-clamp-1">{item.node.title}</span>
+                  )}
+                </li>
+              </Fragment>
             ))}
           </motion.ul>
         )}

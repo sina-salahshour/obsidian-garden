@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GraphRouteImport } from './routes/graph'
+import { Route as LessonsRouteImport } from './routes/lessons'
 import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -27,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 const GraphRoute = GraphRouteImport.update({
   id: '/graph',
   path: '/graph',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LessonsRoute = LessonsRouteImport.update({
+  id: '/lessons',
+  path: '/lessons',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RssDotxmlRoute = RssDotxmlRouteImport.update({
@@ -68,6 +74,7 @@ const SeriesFolderRoute = SeriesFolderRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/graph': typeof GraphRoute
+  '/lessons': typeof LessonsRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/graph': typeof GraphRoute
+  '/lessons': typeof LessonsRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/graph': typeof GraphRoute
+  '/lessons': typeof LessonsRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/graph'
+    | '/lessons'
     | '/rss.xml'
     | '/search'
     | '/sitemap.xml'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/graph'
+    | '/lessons'
     | '/rss.xml'
     | '/search'
     | '/sitemap.xml'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/graph'
+    | '/lessons'
     | '/rss.xml'
     | '/search'
     | '/sitemap.xml'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GraphRoute: typeof GraphRoute
+  LessonsRoute: typeof LessonsRoute
   RssDotxmlRoute: typeof RssDotxmlRoute
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/graph'
       fullPath: '/graph'
       preLoaderRoute: typeof GraphRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lessons': {
+      id: '/lessons'
+      path: '/lessons'
+      fullPath: '/lessons'
+      preLoaderRoute: typeof LessonsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rss.xml': {
@@ -218,6 +238,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GraphRoute: GraphRoute,
+  LessonsRoute: LessonsRoute,
   RssDotxmlRoute: RssDotxmlRoute,
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

@@ -1,4 +1,4 @@
-// sitemap.xml: home, posts index, tags, series pages and every public note.
+// sitemap.xml: home, posts index, tags, lessons index, series pages and every public note.
 import { createFileRoute } from "@tanstack/react-router";
 import { indexFor } from "../content/posts.server.ts";
 import { resolveSiteUrl } from "../content/site-url.server.ts";
@@ -19,6 +19,14 @@ export const Route = createFileRoute("/sitemap.xml")({
           { loc: `${origin}/`, lastmod: index.all[0]?.date },
           { loc: `${origin}/posts` },
           { loc: `${origin}/tags` },
+          {
+            loc: `${origin}/lessons`,
+            lastmod: index
+              .folders()
+              .map((f) => f.latest)
+              .toSorted()
+              .at(-1),
+          },
           ...index.folders().map((f) => ({ loc: `${origin}/series/${f.slug}`, lastmod: f.latest })),
           ...index.all
             .filter((m) => !m.isFolderNote)

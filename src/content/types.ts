@@ -107,6 +107,12 @@ export interface FolderInfo {
   description: string;
   /** folder note's cover ("/attachments/<vault-relative path>"), else null */
   cover: string | null;
+  /**
+   * The cover as sanitised inline SVG markup when it is a published `.svg` (see cover-svg.ts), so it
+   * draws with the site's theme tokens; null for raster/external covers or none. Only present for
+   * folders the viewer may see (it comes from the same viewer-filtered index).
+   */
+  coverSvg: string | null;
   /** slug of the folder note (render its body as the course intro); null when the folder has none */
   indexSlug: string | null;
   /** number of parts (notes in the folder, excluding the folder note) */

@@ -3,13 +3,12 @@ import { motion } from "motion/react";
 import type { FolderInfo, PostMeta } from "~/content/types";
 import { cn } from "~/lib/cn";
 import { formatDate, formatDuration, isoDate, partNumber, plural } from "~/lib/format";
-import { spotlightHandlers } from "~/lib/hooks";
-import { spring } from "~/lib/motion";
+import { useCardHover } from "~/lib/hooks";
 import { ArrowRight, Clock, Layers } from "../ui/icons";
 import { SeriesCover } from "./SeriesCover";
 
 /**
- * Featured course card on the home page: cover (morphs into the series hero), title,
+ * Featured course card on the home page: cover, title,
  * description, stats and the first few parts as a teaser.
  */
 export function SeriesCard({
@@ -23,22 +22,24 @@ export function SeriesCard({
 }) {
   const minutes = parts?.reduce((sum, p) => sum + p.readingMinutes, 0);
   const teaser = parts?.slice(0, 4) ?? [];
+  // The cover carries the card's corners itself (top when stacked, right from md), so the rounded
+  // edge holds even when the transformed card fails to clip a composited child.
+  const hover = useCardHover({ lift: 3 });
   return (
     <motion.article
-      whileHover={{ y: -3 }}
-      transition={spring.soft}
-      {...spotlightHandlers()}
+      {...hover}
       className={cn(
-        "spotlight group relative grid overflow-hidden rounded-3xl border border-line bg-surface shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] duration-300 hover:border-line-strong hover:shadow-[var(--shadow-lg)] md:grid-cols-[1.15fr_1fr]",
+        "spotlight group relative isolate grid overflow-hidden rounded-3xl border border-line bg-surface shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] duration-300 hover:border-line-strong hover:shadow-[var(--shadow-lg)] md:grid-cols-[1.15fr_1fr]",
         className,
       )}
     >
       <SeriesCover
-        slug={folder.slug}
         src={folder.cover}
+        svg={folder.coverSvg}
         title={folder.title}
         priority
-        className="aspect-[16/9] md:order-2 md:aspect-auto md:min-h-full"
+        ring={false}
+        className="aspect-[16/9] rounded-t-3xl md:order-2 md:aspect-auto md:min-h-72 md:rounded-l-none md:rounded-r-3xl"
       />
       <div className="flex flex-col p-6 sm:p-8">
         <p className="inline-flex items-center gap-2 text-xs font-medium tracking-wide text-accent-strong uppercase">

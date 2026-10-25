@@ -1,4 +1,6 @@
+import { useMotionValue, useReducedMotion, useSpring } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { spring } from "./motion";
 
 export function useMediaQuery(query: string, serverValue = false): boolean {
   return useSyncExternalStore(
@@ -115,6 +117,38 @@ export function spotlightHandlers() {
       const r = e.currentTarget.getBoundingClientRect();
       e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
       e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+    },
+  };
+}
+
+/**
+ * Card hover: a gentle pull toward the cursor (at most `pull` px each way) plus the hover `lift`,
+ * on one soft spring so they never fight, and the spotlight's --mx/--my. Mouse only (a touch
+ * would leave the card displaced) and still under reduced motion. Spread onto a motion element:
+ * `<motion.article {...useCardHover()}>`.
+ */
+export function useCardHover({ pull = 3, lift = 2 }: { pull?: number; lift?: number } = {}) {
+  const reduce = useReducedMotion();
+  const tx = useMotionValue(0);
+  const ty = useMotionValue(0);
+  const x = useSpring(tx, spring.soft);
+  const y = useSpring(ty, spring.soft);
+  return {
+    style: { x, y },
+    onPointerMove(e: React.PointerEvent<HTMLElement>) {
+      const r = e.currentTarget.getBoundingClientRect();
+      e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+      if (reduce || e.pointerType !== "mouse") return;
+      // -1..1 from the centre, eased so the edges don't feel like a hard stop
+      const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+      const ny = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
+      tx.set(Math.sin((nx * Math.PI) / 2) * pull);
+      ty.set(Math.sin((ny * Math.PI) / 2) * pull - lift);
+    },
+    onPointerLeave() {
+      tx.set(0);
+      ty.set(0);
     },
   };
 }

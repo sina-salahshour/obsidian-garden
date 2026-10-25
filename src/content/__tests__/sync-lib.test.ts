@@ -30,6 +30,13 @@ describe("frontmatter", () => {
     expect(splitFrontmatter("# none").yaml).toBeNull();
   });
 
+  it("reports invalid YAML instead of dropping it silently", () => {
+    const s = splitFrontmatter("---\ndescription: a: b\nvisibility: private\n---\nBody");
+    expect(s.error).toMatch(/mapping/i);
+    expect(s.data).toEqual({});
+    expect(splitFrontmatter("---\ntitle: X\n---\n").error).toBeUndefined();
+  });
+
   it("publish/draft rules", () => {
     expect(shouldPublish({})).toBe(true);
     expect(shouldPublish({ publish: false })).toBe(false);

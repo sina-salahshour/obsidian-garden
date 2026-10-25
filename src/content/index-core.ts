@@ -170,7 +170,16 @@ export function scorePost(
 
 // ---------------------------------------------------------------------------------------------
 
-export function createIndex(posts: readonly IndexedPost[]): ContentIndex {
+export interface IndexOptions {
+  /** cover href ("/attachments/…") -> sanitised inline SVG, built at build time (posts.server.ts) */
+  coverSvgs?: ReadonlyMap<string, string>;
+}
+
+export function createIndex(
+  posts: readonly IndexedPost[],
+  { coverSvgs }: IndexOptions = {},
+): ContentIndex {
+  const svgFor = (cover: string | null) => (cover && coverSvgs?.get(cover)) || null;
   const all = posts.map((p) => p.meta).sort(newestFirst);
   const bySlug = new Map(all.map((m) => [m.slug, m]));
   const textBySlug = new Map(posts.map((p) => [p.meta.slug, p.text]));
@@ -310,6 +319,7 @@ export function createIndex(posts: readonly IndexedPost[]): ContentIndex {
           title: note?.title ?? moc?.title ?? humanizeFolder(folder),
           description: note?.description ?? "",
           cover: note?.cover ?? null,
+          coverSvg: svgFor(note?.cover ?? null),
           indexSlug: note?.slug ?? null,
           count: parts.length,
           latest: dates[dates.length - 1]!,
@@ -324,6 +334,7 @@ export function createIndex(posts: readonly IndexedPost[]): ContentIndex {
           title: note.title,
           description: note.description,
           cover: note.cover,
+          coverSvg: svgFor(note.cover),
           indexSlug: note.slug,
           count: 0,
           latest: note.date,

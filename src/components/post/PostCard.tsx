@@ -3,8 +3,7 @@ import { motion } from "motion/react";
 import type { PostMeta } from "~/content/types";
 import { cn } from "~/lib/cn";
 import { formatDate, formatReading, humanize, isoDate, partNumber } from "~/lib/format";
-import { spotlightHandlers } from "~/lib/hooks";
-import { spring } from "~/lib/motion";
+import { useCardHover } from "~/lib/hooks";
 import { PrivateBadge } from "../ui/Badge";
 import { ArrowRight } from "../ui/icons";
 import { TagChip } from "../ui/TagChip";
@@ -33,11 +32,10 @@ export function PostCard({
   headingLevel: H = "h2",
 }: PostCardProps) {
   const inSeries = showSeries && post.folder && post.order != null;
+  const hover = useCardHover();
   return (
     <motion.article
-      whileHover={{ y: -2 }}
-      transition={spring.soft}
-      {...spotlightHandlers()}
+      {...hover}
       className={cn(
         "spotlight group relative rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] duration-300 hover:border-line-strong hover:shadow-[var(--shadow-md)] sm:p-6",
         className,
@@ -108,11 +106,10 @@ export function PostRow({
   className?: string;
   eyebrow?: React.ReactNode;
 }) {
+  const hover = useCardHover({ pull: 2, lift: 0 });
   return (
     <motion.div
-      whileHover={{ x: 2 }}
-      transition={spring.snappy}
-      {...spotlightHandlers()}
+      {...hover}
       className={cn(
         "spotlight group relative flex items-start gap-3 rounded-xl border border-line bg-surface px-4 py-3.5 transition-colors hover:border-line-strong",
         className,

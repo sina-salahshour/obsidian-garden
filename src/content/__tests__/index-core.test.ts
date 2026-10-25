@@ -129,11 +129,33 @@ describe("series and folders", () => {
         title: "The Course",
         description: "Course intro",
         cover: "/attachments/c.svg",
+        coverSvg: null,
         indexSlug: "course",
         count: 3,
         latest: "2024-03-01T00:00:00.000Z",
       },
     ]);
+  });
+
+  it("attaches the inline SVG of the folder note's cover, only for folders the viewer sees", () => {
+    const coverSvgs = new Map([
+      ["/attachments/c.svg", "<svg>course</svg>"],
+      ["/attachments/hidden/h.svg", "<svg>hidden</svg>"],
+    ]);
+    const hidden: IndexedPost = {
+      meta: meta("hidden", {
+        title: "Hidden",
+        folder: "hidden",
+        isFolderNote: true,
+        visibility: "private",
+        cover: "/attachments/hidden/h.svg",
+      }),
+      text: "",
+    };
+    const visible = [...posts, hidden].filter((p) => p.meta.visibility === "public");
+    const folders = createIndex(visible, { coverSvgs }).folders();
+    expect(folders.map((f) => [f.slug, f.coverSvg])).toEqual([["course", "<svg>course</svg>"]]);
+    expect(JSON.stringify(folders)).not.toContain("hidden");
   });
 
   it("falls back to the order-0 note title without a folder note", () => {
@@ -144,6 +166,7 @@ describe("series and folders", () => {
       title: "Index",
       indexSlug: null,
       cover: null,
+      coverSvg: null,
       description: "",
     });
   });

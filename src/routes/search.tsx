@@ -168,7 +168,7 @@ function SearchPage() {
                       <Highlight
                         text={hit.excerpt}
                         ranges={hit.ranges}
-                        className="mt-1 line-clamp-2 block text-sm leading-relaxed text-muted"
+                        className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted"
                       />
                     )}
                     {hit.tags.length > 0 && (

@@ -1,6 +1,7 @@
 // Server-only content data layer. Everything is bundled at build time through import.meta.glob (no
 // runtime fs, so it runs on Vercel / Cloudflare). Two indexes: public (anonymous) and full (admin).
 import { canViewPrivate } from "./access.server.ts";
+import { coverSvgMap } from "./cover-svg.ts";
 import { createIndex, type ContentIndex, type IndexedPost } from "./index-core.ts";
 import type { PostMeta, Viewer } from "./types.ts";
 
@@ -14,6 +15,18 @@ const privateBodies = import.meta.glob<string>("/content/_private/**/*.{md,mdx}"
   eager: true,
   import: "body",
 });
+
+/**
+ * Published SVG attachments as raw text, so course covers can be inlined and follow the theme.
+ * Bundled into the server only; a cover reaches the client solely as FolderInfo.coverSvg of a
+ * folder the viewer may see.
+ */
+const svgFiles = import.meta.glob<string>("/public/attachments/**/*.svg", {
+  eager: true,
+  query: "?raw",
+  import: "default",
+});
+const coverSvgs = coverSvgMap(svgFiles);
 
 const posts: IndexedPost[] = Object.entries(metas).map(([key, meta]) => ({
   meta,
@@ -31,8 +44,11 @@ let fullIndex: ContentIndex | undefined;
 
 /** The content index this viewer may see. Private notes do not exist for anonymous viewers. */
 export function indexFor(viewer: Viewer): ContentIndex {
-  if (canViewPrivate(viewer)) return (fullIndex ??= createIndex(posts));
-  return (publicIndex ??= createIndex(posts.filter((p) => p.meta.visibility === "public")));
+  if (canViewPrivate(viewer)) return (fullIndex ??= createIndex(posts, { coverSvgs }));
+  return (publicIndex ??= createIndex(
+    posts.filter((p) => p.meta.visibility === "public"),
+    { coverSvgs },
+  ));
 }
 
 /** Function-body code of a private note, only for viewers allowed to see it. */

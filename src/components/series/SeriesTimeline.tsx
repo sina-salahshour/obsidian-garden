@@ -37,21 +37,23 @@ export function SeriesTimeline({
               params={{ _splat: p.slug }}
               preload="intent"
               aria-current={current ? "page" : undefined}
-              className="group flex items-start gap-4 rounded-2xl py-3 pr-3 transition-colors hover:bg-sunken/70 sm:gap-5"
+              className="group relative flex items-start gap-6 py-3.5 pr-4 outline-none before:absolute before:inset-y-0 before:right-0 before:left-12 before:rounded-2xl before:bg-sunken/70 before:opacity-0 before:transition-opacity before:duration-300 hover:before:opacity-100 focus-visible:before:opacity-100 focus-visible:before:outline-2 focus-visible:before:outline-[var(--ring)] sm:gap-7 sm:before:left-[3.25rem]"
             >
+              {/* The hover surface starts after the node, so the node stays a stop on the rail and
+                  the text gets even 16px padding inside it. */}
               <span
                 className={cn(
-                  "relative z-10 grid size-10 shrink-0 place-items-center rounded-full border font-mono text-xs tabular-nums transition-[background-color,border-color,color,transform] duration-300 group-hover:scale-105",
+                  "relative z-10 grid size-10 shrink-0 place-items-center rounded-full border font-mono text-xs tabular-nums transition-[background-color,border-color,color] duration-300",
                   current
                     ? "border-accent bg-accent text-accent-fg shadow-[0_0_0_4px_var(--accent-soft)]"
                     : read
                       ? "border-accent-line bg-accent-soft text-accent-strong"
-                      : "border-line-strong bg-bg text-muted group-hover:border-accent group-hover:bg-accent group-hover:text-accent-fg",
+                      : "border-line-strong bg-bg text-muted group-hover:border-accent-line group-hover:bg-[color-mix(in_oklab,var(--accent)_10%,var(--bg))] group-hover:text-accent-strong",
                 )}
               >
                 {partNumber(p.order ?? i + 1)}
               </span>
-              <span className="min-w-0 flex-1 pt-1.5">
+              <span className="relative min-w-0 flex-1 pt-1.5">
                 <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span
                     className={cn(
@@ -64,7 +66,7 @@ export function SeriesTimeline({
                   {p.visibility === "private" && <PrivateBadge compact />}
                 </span>
                 {p.description && (
-                  <span className="mt-1 line-clamp-2 block text-sm leading-relaxed text-muted">
+                  <span className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted">
                     {p.description}
                   </span>
                 )}
@@ -74,7 +76,7 @@ export function SeriesTimeline({
               </span>
               <motion.span
                 aria-hidden="true"
-                className="mt-3 text-subtle opacity-0 transition-opacity group-hover:opacity-100 max-sm:hidden"
+                className="relative mt-3 text-subtle opacity-0 transition-opacity group-hover:opacity-100 max-sm:hidden"
                 whileHover={{ x: 2 }}
                 transition={spring.snappy}
               >

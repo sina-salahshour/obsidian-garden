@@ -1,11 +1,14 @@
-import { Link } from "@tanstack/react-router";
-import { motion, useMotionValueEvent, useScroll } from "motion/react";
-import { useState } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { site } from "~/site.config";
 import { cn } from "~/lib/cn";
-import { spring } from "~/lib/motion";
+import { plural } from "~/lib/format";
+import { fade, spring } from "~/lib/motion";
 import { palette, usePaletteOpen } from "~/lib/palette";
-import { GraphIcon, SearchIcon } from "../ui/icons";
+import { LessonsGrid, LessonsGridSkeleton } from "../series/LessonsGrid";
+import { prefetchLessons, useLessons } from "../series/useLessons";
+import { ArrowRight, ChevronDown, GraphIcon, Reset, SearchIcon } from "../ui/icons";
 import { Kbd } from "../ui/Badge";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -96,6 +99,7 @@ export function SiteHeader() {
 
           <nav aria-label="Main" className="ml-auto hidden md:block">
             <ul className="flex items-center gap-0.5">
+              <LessonsMenu paletteOpen={paletteOpen} />
               {nav.map((item) => (
                 <li key={item.to}>
                   <Link
@@ -148,12 +152,12 @@ export function SiteHeader() {
   );
 }
 
-/** Second row on phones: the three sections as a calm segmented strip. */
+/** Second row on phones: the sections as a calm segmented strip (no dropdown on mobile). */
 function MobileNav() {
   return (
     <nav aria-label="Sections" className="container-page -mt-1 pb-2 md:hidden">
       <ul className="flex gap-1">
-        {nav
+        {[{ to: "/lessons", label: "Lessons" } as const, ...nav]
           .filter((n) => n.to !== "/graph")
           .map((item) => (
             <li key={item.to}>
@@ -178,5 +182,201 @@ function MobileNav() {
           ))}
       </ul>
     </nav>
+  );
+}
+
+const PANEL_ID = "lessons-panel";
+const panelLinks = (el: HTMLElement | null) => [
+  ...(el?.querySelectorAll<HTMLElement>("a[href]") ?? []),
+];
+
+/**
+ * Desktop "Lessons" disclosure: a button that opens a panel of course tiles under the header.
+ * Data is fetched once on the first hover/focus/open (session cache in useLessons), so other
+ * pages pay nothing for it. Closes on Escape (focus returns to the button), outside click,
+ * focus leaving, route change, or choosing a tile. ArrowDown on the button opens it and moves
+ * into the grid; arrow keys then step through the links (ArrowUp from the first returns).
+ */
+function LessonsMenu({ paletteOpen }: { paletteOpen: boolean }) {
+  const [open, setOpen] = useState(false);
+  const lessons = useLessons();
+  const root = useRef<HTMLLIElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const focusOnReady = useRef(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const active = pathname === "/lessons" || pathname.startsWith("/series/");
+
+  // Route change (including choosing a tile) or the palette opening closes the panel.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
+    setOpen(false);
+  }
+  if (open && paletteOpen) setOpen(false);
+
+  useEffect(() => {
+    if (!open) return;
+    // Escape while focus is elsewhere on the page (focus inside is handled by the <li>).
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || root.current?.contains(e.target as Node)) return;
+      setOpen(false);
+      button.current?.focus();
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [open]);
+
+  // ArrowDown opened the panel: move focus to the first tile once the tiles exist.
+  useEffect(() => {
+    if (!open || !focusOnReady.current || lessons.status !== "ready") return;
+    focusOnReady.current = false;
+    const id = requestAnimationFrame(() => panelLinks(panel.current)[0]?.focus());
+    return () => cancelAnimationFrame(id);
+  }, [open, lessons.status]);
+
+  const onPanelKey = (e: React.KeyboardEvent) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    const links = panelLinks(panel.current);
+    const i = links.indexOf(document.activeElement as HTMLElement);
+    if (i === -1) return;
+    e.preventDefault();
+    if (i + step < 0) button.current?.focus();
+    else links[Math.min(i + step, links.length - 1)]?.focus();
+  };
+
+  const close = () => setOpen(false);
+  const folders = lessons.status === "ready" ? lessons.folders : [];
+
+  return (
+    <li
+      ref={root}
+      onKeyDown={(e) => {
+        if (e.key !== "Escape" || !open) return;
+        e.preventDefault();
+        setOpen(false);
+        button.current?.focus();
+      }}
+      onBlur={(e) => {
+        // relatedTarget is null when the window itself loses focus: keep the panel then.
+        if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget as Node)) close();
+      }}
+    >
+      <button
+        ref={button}
+        type="button"
+        aria-expanded={open}
+        aria-controls={PANEL_ID}
+        onPointerEnter={prefetchLessons}
+        onFocus={prefetchLessons}
+        onClick={() => {
+          prefetchLessons();
+          setOpen((o) => !o);
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowDown") return;
+          e.preventDefault();
+          prefetchLessons();
+          focusOnReady.current = true;
+          setOpen(true);
+          if (open && lessons.status === "ready") panelLinks(panel.current)[0]?.focus();
+        }}
+        className={cn(
+          "relative inline-flex h-9 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-medium text-muted transition-colors hover:text-fg",
+          (active || open) && "text-fg",
+          open && !active && "bg-sunken/70",
+        )}
+      >
+        {active && (
+          <motion.span
+            layoutId="nav-active"
+            transition={spring.layout}
+            className="absolute inset-0 rounded-full bg-sunken"
+          />
+        )}
+        <span className="relative">Lessons</span>
+        <motion.span
+          className="relative inline-flex text-subtle"
+          initial={false}
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={spring.snappy}
+        >
+          <ChevronDown size={14} />
+        </motion.span>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="panel"
+            id={PANEL_ID}
+            ref={panel}
+            role="region"
+            aria-label="Lessons"
+            tabIndex={-1}
+            variants={fade}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            onKeyDown={onPanelKey}
+            className="pointer-events-none absolute inset-x-0 top-full outline-none"
+          >
+            <div className="container-page pt-1.5">
+              <div className="pointer-events-auto max-h-[calc(100dvh-var(--header-h)-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-line bg-bg/95 p-3 shadow-[var(--shadow-lg)] backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(1px))]:bg-bg">
+                {lessons.status === "error" ? (
+                  <div
+                    role="alert"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-line-strong px-4 py-5 text-sm"
+                  >
+                    <span className="text-muted">The lessons could not be loaded.</span>
+                    <button
+                      type="button"
+                      onClick={prefetchLessons}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 font-medium text-fg shadow-[var(--shadow-sm)] hover:border-line-strong"
+                    >
+                      <Reset size={14} /> Try again
+                    </button>
+                  </div>
+                ) : lessons.status !== "ready" ? (
+                  <LessonsGridSkeleton compact />
+                ) : folders.length === 0 ? (
+                  <p className="px-1 py-6 text-center text-sm text-muted">No lessons yet.</p>
+                ) : (
+                  <LessonsGrid
+                    variant="panel"
+                    lessons={folders.map((folder) => ({ folder }))}
+                    onSelect={close}
+                  />
+                )}
+                <div className="mt-3 flex items-center justify-between gap-4 border-t border-line px-1 pt-3 text-sm">
+                  <span className="text-subtle">
+                    {lessons.status === "ready" ? plural(folders.length, "course") : "Courses"}
+                  </span>
+                  <Link
+                    to="/lessons"
+                    onClick={close}
+                    className="group inline-flex items-center gap-1.5 rounded-full font-medium text-muted hover:text-fg"
+                  >
+                    All lessons
+                    <ArrowRight
+                      size={15}
+                      className="text-accent transition-transform group-hover:translate-x-0.5"
+                    />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </li>
   );
 }

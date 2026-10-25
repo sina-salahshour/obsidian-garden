@@ -51,11 +51,11 @@ function SeriesPage() {
     <main id="main" tabIndex={-1} className="pb-10 outline-none">
       <section className="container-page pt-6 sm:pt-10" aria-labelledby="series-title">
         <SeriesCover
-          slug={folder.slug}
           src={folder.cover}
+          svg={folder.coverSvg}
           title={folder.title}
           priority
-          className="aspect-[16/10] rounded-3xl shadow-[var(--shadow-lg)] sm:aspect-[21/9]"
+          className="aspect-[16/10] rounded-3xl shadow-[var(--shadow-md)] sm:aspect-[2.4/1]"
         />
         <div className="mx-auto mt-8 max-w-[44rem] sm:mt-12">
           <div {...enter(0)}>

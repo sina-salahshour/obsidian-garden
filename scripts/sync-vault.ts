@@ -126,11 +126,18 @@ export async function sync(): Promise<SyncSummary> {
 
   const notes: VaultNote[] = [];
   const sources = new Map<string, string>();
+  const invalid: string[] = [];
   for (const path of scan.notes) {
     const source = await readFile(join(vaultDir, path), "utf8");
-    const { data, body } = splitFrontmatter(source);
+    const { data, body, error } = splitFrontmatter(source);
+    if (error) invalid.push(`  ${path}: ${error}`);
     sources.set(path, source);
     notes.push({ path, data, body });
+  }
+  // Invalid YAML crashes the MDX build, and its visibility (which may cascade to a folder) can't be
+  // trusted, so stop before writing anything and keep the last good content/.
+  if (invalid.length) {
+    throw new Error(`invalid frontmatter (quote values that contain ": "):\n${invalid.join("\n")}`);
   }
   const { states, warnings } = classifyNotes(notes, {
     private: scan.privateMarkers,
