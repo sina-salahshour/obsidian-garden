@@ -22,13 +22,16 @@ so run `pnpm sync` and commit the result before you deploy.
 
 ## Writing notes
 
-- **Private notes:** frontmatter `visibility: private`, `private: true`, or the tag `#private`. These
-  notes are built but stay hidden unless you are an admin.
-- **Never published:** frontmatter `publish: false` or `draft: true`. The sync skips these notes.
-- **Private or excluded directories:** put `visibility: private` in a directory's folder note, or add
-  an empty `.private` file to the directory. This applies to every subfolder and can't be overridden
-  further down. A `.nopublish` file, or `publish: false` on the folder note, leaves the whole tree out
-  of the sync.
+- **Private notes** (frontmatter `visibility: private`, `private: true`, or the tag `#private`) are notes
+  not polished enough to publish yet, not secrets. They are synced and committed under `content/_private`
+  like any other note, so anyone can read them in this repository. The site keeps them out of its pages,
+  lists, search, graph and feeds for everyone but an admin.
+- **Not synced** (frontmatter `publish: false` or `draft: true`): the note never leaves the vault and is never
+  in git. The sync skips it and removes its copy if an earlier sync made one. Use this for anything that
+  shouldn't be public at all.
+- **Whole directories:** an empty `.private` file in a directory, or `visibility: private` on its folder
+  note, makes the whole tree private. An empty `.nopublish` file, or `publish: false` on the folder note,
+  keeps the whole tree out of the sync. This applies to every subfolder and can't be overridden further down.
 - **Courses / series:** a folder becomes a course at `/series/<dir>` when it has a main note at
   `<dir>/<dir>.md`, `<dir>.md` next to the folder, or `<dir>/index.md`. Give that note `title`,
   `description` and `cover: cover.svg` in its frontmatter. Numbered filenames (`07 Foo.md`) set the
@@ -44,10 +47,6 @@ so run `pnpm sync` and commit the result before you deploy.
 | `PORT`         | Port for `pnpm start` (node-server preset).                                                                                                           |
 
 ## Deploy to Vercel
-
-> [!WARNING]
-> Private notes are committed under `content/_private`. They are kept out of the deployed client
-> bundle, but they are in git, so **the GitHub repository must be private**.
 
 1. Push this repo to GitHub, then **Add New -> Project** in Vercel and import it. `vercel.json`
    already sets the install command (pnpm 12 through corepack), the build command and
