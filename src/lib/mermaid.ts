@@ -97,6 +97,8 @@ export function mermaidConfig(theme: Theme): MermaidConfig {
     .marker, marker path { fill: ${edge}; stroke: ${edge}; }
     .edgeLabel, .edgeLabel p, .labelBkg { background-color: ${surface}; color: ${muted}; font-size: 12.5px; }
     .edgeLabel rect { fill: ${surface}; }
+    .edgeLabel text, .edgeLabel tspan { fill: ${muted}; font-size: 12.5px; }
+    .label text, .label tspan, .nodeLabel tspan { fill: ${fg}; }
     .nodeLabel, .label { font-weight: 500; line-height: 1.35; }
     .nodeLabel code, .edgeLabel code, .label code { font-family: "JetBrains Mono Variable", ui-monospace, monospace; font-size: .9em; }
     .actor { stroke-width: 1.25px; rx: 8px; ry: 8px; }
@@ -112,7 +114,9 @@ export function mermaidConfig(theme: Theme): MermaidConfig {
     themeVariables,
     themeCSS,
     fontFamily: font,
-    htmlLabels: true,
+    // Native SVG text: mermaid sizes boxes from getBBox of the real text, so labels can't overflow
+    // their nodes (HTML labels in foreignObject are measured separately and drift across browsers).
+    htmlLabels: false,
     flowchart: {
       curve: "basis",
       padding: 14,
@@ -133,6 +137,13 @@ export function mermaidConfig(theme: Theme): MermaidConfig {
   };
 }
 
+const MERMAID_FONTS = [
+  '400 14px "Inter Variable"',
+  '500 14px "Inter Variable"',
+  '600 12px "Inter Variable"',
+  '400 13px "JetBrains Mono Variable"',
+];
+
 // mermaid.render is not re-entrant: run renders one at a time.
 let queue: Promise<unknown> = Promise.resolve();
 let counter = 0;
@@ -141,6 +152,8 @@ let counter = 0;
 export function renderMermaid(source: string, theme: Theme): Promise<string> {
   const job = queue.then(async () => {
     const mermaid = await loadMermaid();
+    // Box sizes are measured at render time: measure with the real fonts, not the fallback.
+    await Promise.all(MERMAID_FONTS.map((f) => document.fonts.load(f))).catch(() => undefined);
     mermaid.initialize(mermaidConfig(theme));
     const id = `mmd-${++counter}`;
     try {

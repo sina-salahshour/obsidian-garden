@@ -398,13 +398,30 @@ function calloutize(node: Blockquote): void {
   ] as never;
 }
 
+/**
+ * Sequence diagrams end a statement at `;`, so a `;` inside message or note text ("restore
+ * priority; listener returns") is a parse error. Escape it as mermaid's `#59;` entity.
+ */
+export function normalizeMermaid(source: string): string {
+  if (!/^\s*sequenceDiagram\b/.test(source)) return source;
+  return source
+    .split("\n")
+    .map((line) => {
+      const colon = line.indexOf(":");
+      return colon === -1
+        ? line
+        : line.slice(0, colon + 1) + line.slice(colon + 1).replaceAll(";", "#59;");
+    })
+    .join("\n");
+}
+
 function mermaidNode(node: Code): RootContent {
   const source = node.value;
   return {
     type: "obsidianMermaid",
     data: {
       hName: "figure",
-      hProperties: { dataMermaid: source, className: ["mermaid"] },
+      hProperties: { dataMermaid: normalizeMermaid(source), className: ["mermaid"] },
       hChildren: [
         {
           type: "element",

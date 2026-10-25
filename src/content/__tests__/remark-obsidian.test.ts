@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { renderNote } from "./render.ts";
+import { normalizeMermaid } from "../mdx/remark-obsidian.ts";
 
 const others = [
   {
@@ -139,6 +140,13 @@ describe("code and mermaid", () => {
       '<figure data-mermaid="flowchart LR\n  A --&gt; B" class="mermaid"><pre><code>flowchart LR\n  A --&gt; B</code></pre></figure>',
     );
     expect(html).not.toContain("shiki");
+  });
+
+  it("escapes ; in sequence diagram text but leaves other diagrams alone", () => {
+    expect(
+      normalizeMermaid("sequenceDiagram\n  A->>B: restore; returns\n  Note over A: x; y"),
+    ).toBe("sequenceDiagram\n  A->>B: restore#59; returns\n  Note over A: x#59; y");
+    expect(normalizeMermaid("flowchart LR\n  A[a; b] --> B")).toBe("flowchart LR\n  A[a; b] --> B");
   });
 
   it("highlights code with data-language and dual themes", async () => {
