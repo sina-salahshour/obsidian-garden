@@ -36,6 +36,13 @@ export function SeriesCover({
         aria-hidden="true"
         className="absolute inset-0 bg-[radial-gradient(var(--line-strong)_1px,transparent_1.4px)] bg-[size:22px_22px] bg-center"
       />
+      {/* the same grid in accent, revealed around the cursor while the parent card is hovered
+          (useCardHover sets --sx/--sy on [data-spot]), so the paper lights up under the light */}
+      <div
+        aria-hidden="true"
+        data-spot
+        className="absolute inset-0 bg-[radial-gradient(var(--accent)_1.2px,transparent_1.7px)] bg-[size:22px_22px] bg-center opacity-0 transition-opacity duration-500 [mask-image:radial-gradient(9rem_circle_at_var(--sx,50%)_var(--sy,50%),#000,transparent_70%)] group-hover:opacity-100"
+      />
       <div className="absolute inset-0 grid place-items-center">
         <div aria-hidden="true" className="relative aspect-[8/5] w-[min(88cqw,140.8cqh)]">
           {svg ? (

@@ -139,6 +139,12 @@ export function useCardHover({ pull = 3 }: { pull?: number } = {}) {
       const r = e.currentTarget.getBoundingClientRect();
       e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
       e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+      // descendants that light up under the cursor (cover dot grid) get their own local coords
+      for (const el of e.currentTarget.querySelectorAll<HTMLElement>("[data-spot]")) {
+        const b = el.getBoundingClientRect();
+        el.style.setProperty("--sx", `${e.clientX - b.left}px`);
+        el.style.setProperty("--sy", `${e.clientY - b.top}px`);
+      }
       if (reduce || e.pointerType !== "mouse") return;
       // -1..1 from the centre, eased so the edges don't feel like a hard stop
       const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
