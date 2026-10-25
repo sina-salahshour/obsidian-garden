@@ -50,14 +50,23 @@ export function LessonTile({
     >
       {/* Slot on the cover's own paper: no lighter tile band can show at a subpixel seam, and the
           corners are concentric with the tile's (radius minus its 1.5px border). */}
-      <div className={cn("bg-sunken", compact ? "rounded-t-[10.5px]" : "rounded-t-[14.5px]")}>
+      <div
+        className={cn(
+          "bg-sunken",
+          compact
+            ? "rounded-t-[calc(var(--radius-xl)-1.5px)]"
+            : "rounded-t-[calc(var(--radius-2xl)-1.5px)]",
+        )}
+      >
         <SeriesCover
           src={folder.cover}
           svg={folder.coverSvg}
           title={folder.title}
           ring={false}
           className={
-            compact ? "aspect-[21/9] rounded-t-[10.5px]" : "aspect-[16/9] rounded-t-[14.5px]"
+            compact
+              ? "aspect-[21/9] rounded-t-[calc(var(--radius-xl)-1.5px)]"
+              : "aspect-[16/9] rounded-t-[calc(var(--radius-2xl)-1.5px)]"
           }
         />
       </div>
