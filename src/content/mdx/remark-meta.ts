@@ -1,0 +1,309 @@
+// Computes `meta: PostMeta` for every note and exports it from the compiled module.
+//   remarkMeta        (mdast, after remark-obsidian): frontmatter, title, H1 removal, description,
+//                     word count, tags, links, visibility, folder-note info, search text.
+//   rehypeMeta        (hast, after rehype-slug): h2-h4 with their final ids, then appends an ESM node
+//                     `export const meta = {...}` + `searchText` (+ `body` for private notes).
+//
+// Reading time: prose words at 230 wpm plus fenced-code words at half weight (code is skimmed, not
+// read word by word); mermaid sources are not counted. wordCount counts prose only. Min 1 minute.
+import { existsSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { toString as hastToString } from "hast-util-to-string";
+import type { Element, Root as HastRoot } from "hast";
+import type { Blockquote, Nodes, Paragraph, Root, RootContent } from "mdast";
+import { toString as mdastToString } from "mdast-util-to-string";
+import { visit } from "unist-util-visit";
+import { parse as parseYaml } from "yaml";
+import type { Heading, PostMeta } from "../types.ts";
+import { baseOf, orderFromName, stripNoteExt, stripOrderPrefix } from "../paths.ts";
+import { slugifyPath } from "../slug.ts";
+import type { Catalog } from "./catalog.ts";
+import { toStringList } from "./catalog.ts";
+import { exportConst } from "./estree.ts";
+import type { ObsidianData } from "./remark-obsidian.ts";
+import type { EsProgram, FileLike } from "./unified-types.ts";
+
+export interface MetaOptions {
+  catalog: () => Catalog;
+  contentPath: (file: FileLike) => string | null;
+  /** absolute path of public/attachments, used to null out covers that are not synced (yet) */
+  attachmentsDir: string;
+}
+
+interface MetaDraft extends Omit<PostMeta, "headings"> {
+  headings: Heading[];
+}
+
+const WPM = 230;
+/** non-content nodes at the top of a note (frontmatter, injected ESM, link definitions) */
+const SKIP_LEAD = new Set(["yaml", "toml", "mdxjsEsm", "definition"]);
+const DESCRIPTION_MAX = 180;
+
+export function truncateWords(value: string, max: number): string {
+  const clean = value.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max + 1);
+  const space = cut.lastIndexOf(" ");
+  const base = (space > max * 0.6 ? cut.slice(0, space) : clean.slice(0, max)).replace(
+    /[\s,;:.!?\-–—]+$/,
+    "",
+  );
+  return `${base}…`;
+}
+
+export function toIso(value: unknown): string | null {
+  let d: Date;
+  if (value instanceof Date) d = value;
+  else if (typeof value === "string" || typeof value === "number") d = new Date(value);
+  else return null;
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+export function normalizeTag(tag: string): string {
+  return tag.trim().replace(/^#+/, "").toLowerCase().replace(/\s+/g, "-");
+}
+
+function countWords(value: string): number {
+  const words = value.match(/[\p{L}\p{N}][\p{L}\p{N}'’_-]*/gu);
+  return words ? words.length : 0;
+}
+
+function isCallout(node: RootContent): node is Blockquote {
+  return (
+    node.type === "blockquote" &&
+    typeof (node.data as { hProperties?: { dataCallout?: string } })?.hProperties?.dataCallout ===
+      "string"
+  );
+}
+
+function calloutType(node: Blockquote): string {
+  return (node.data as { hProperties: { dataCallout: string } }).hProperties.dataCallout;
+}
+
+/** Text of a callout's content div (children[1]). */
+function calloutText(node: Blockquote): string {
+  const content = node.children[1];
+  return content ? mdastToString(content) : "";
+}
+
+export function frontmatterOf(tree: Root): Record<string, unknown> {
+  const yamlNode = tree.children.find((n) => (n as { type: string }).type === "yaml") as
+    | { value?: string }
+    | undefined;
+  if (!yamlNode?.value) return {};
+  try {
+    const parsed: unknown = parseYaml(yamlNode.value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function coverOf(
+  fm: Record<string, unknown>,
+  attachmentsDir: string,
+  file: FileLike,
+): string | null {
+  for (const key of ["cover", "image", "banner"]) {
+    const raw = fm[key];
+    if (typeof raw !== "string" || !raw.trim()) continue;
+    let value = raw.trim();
+    if (/^https?:\/\//i.test(value) || value.startsWith("//")) return value;
+    const wiki = /^!?\[\[([^\]|#]+)/.exec(value);
+    if (wiki) value = wiki[1]!;
+    const name = baseOf(decodeURIComponentSafe(value.trim()));
+    if (!existsSync(join(attachmentsDir, name))) {
+      file.message(
+        `cover "${name}" not found in public/attachments (run the sync); cover set to null`,
+      );
+      return null;
+    }
+    return `/attachments/${encodeURIComponent(name)}`;
+  }
+  return null;
+}
+
+function decodeURIComponentSafe(v: string): string {
+  try {
+    return decodeURIComponent(v);
+  } catch {
+    return v;
+  }
+}
+
+/** Plain text used by the server-only search index: prose, headings, callouts, tables; no fenced code. */
+const INLINE = new Set(["emphasis", "strong", "link", "linkReference", "delete"]);
+
+export function plainText(tree: Root): string {
+  const parts: string[] = [];
+  const walk = (node: Nodes) => {
+    if (
+      node.type === "code" ||
+      (node as { type: string }).type === "obsidianMermaid" ||
+      node.type === "yaml"
+    )
+      return;
+    if (node.type === "footnoteDefinition") return;
+    if (
+      "value" in node &&
+      typeof node.value === "string" &&
+      (node.type === "text" || node.type === "inlineCode")
+    ) {
+      parts.push(node.value);
+      return;
+    }
+    if ("children" in node) {
+      const block = !INLINE.has(node.type);
+      for (const c of node.children as Nodes[]) walk(c);
+      if (block) parts.push("\n");
+    }
+  };
+  walk(tree);
+  return parts
+    .join("")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .trim();
+}
+
+export function remarkMeta(options: MetaOptions) {
+  return (tree: Root, file: FileLike) => {
+    const contentPath = options.contentPath(file);
+    const catalog = contentPath !== null ? options.catalog() : null;
+    const self = contentPath !== null ? (catalog?.byContentPath.get(contentPath) ?? null) : null;
+    const fm = frontmatterOf(tree);
+    const obsidian = (file.data.obsidian as ObsidianData | undefined) ?? { links: [], tags: [] };
+    const logical = self?.logical ?? contentPath ?? baseOf(file.path ?? "note.md");
+    const name = stripNoteExt(baseOf(logical));
+
+    // Title + first-H1 removal
+    const firstBlock = tree.children.findIndex((n) => !SKIP_LEAD.has((n as { type: string }).type));
+    const h1 = tree.children.find((n) => n.type === "heading" && n.depth === 1);
+    const h1Text = h1 ? mdastToString(h1).trim() : null;
+    const fmTitle = typeof fm.title === "string" && fm.title.trim() ? fm.title.trim() : null;
+    const title = fmTitle ?? h1Text ?? stripOrderPrefix(name);
+    if (h1 && h1Text === title && tree.children.indexOf(h1) === firstBlock) {
+      tree.children.splice(firstBlock, 1);
+    }
+
+    // Description
+    let description = typeof fm.description === "string" ? fm.description.trim() : "";
+    if (!description) {
+      const blocks = tree.children.filter((n) => !SKIP_LEAD.has((n as { type: string }).type));
+      const lead = blocks[0];
+      if (
+        lead &&
+        isCallout(lead) &&
+        ["summary", "abstract", "tldr", "info", "note"].includes(calloutType(lead))
+      ) {
+        description = calloutText(lead);
+      }
+      if (!description) {
+        const para = blocks.find(
+          (n): n is Paragraph => n.type === "paragraph" && mdastToString(n).trim().length > 0,
+        );
+        description = para ? mdastToString(para) : "";
+      }
+      description = truncateWords(description, DESCRIPTION_MAX);
+    }
+
+    // Word count
+    let prose = 0;
+    let code = 0;
+    visit(tree, (node) => {
+      if (node.type === "code") code += countWords(node.value);
+      else if (node.type === "text" || node.type === "inlineCode") prose += countWords(node.value);
+    });
+    const readingMinutes = Math.max(1, Math.round((prose + code * 0.5) / WPM));
+
+    const fmTags = toStringList(fm.tags ?? fm.tag).flatMap((t) => t.split(/\s+/));
+    const tags = [
+      ...new Set([...fmTags, ...obsidian.tags].map(normalizeTag).filter(Boolean)),
+    ].sort();
+    const slug = self?.slug ?? slugifyPath(stripNoteExt(logical));
+    const links = [...new Set(obsidian.links)].filter((l) => l !== slug);
+    const isPrivate = self?.isPrivate ?? false;
+    const markedPrivate =
+      (typeof fm.visibility === "string" && fm.visibility.toLowerCase() === "private") ||
+      fm.private === true ||
+      tags.includes("private");
+    if (markedPrivate && !isPrivate && contentPath !== null) {
+      throw new Error(
+        `${contentPath}: marked private but stored outside content/_private/ (it would ship to the client). Run the vault sync.`,
+      );
+    }
+
+    let date = toIso(fm.date) ?? toIso(fm.created);
+    if (!date) {
+      try {
+        date = file.path ? statSync(file.path).mtime.toISOString() : null;
+      } catch {
+        date = null;
+      }
+    }
+    const folderDir = self?.folderDir ?? null;
+    const segments = (folderDir ?? logical).split("/");
+    const folder = folderDir !== null ? segments[0]! : segments.length > 1 ? segments[0]! : null;
+
+    const meta: MetaDraft = {
+      slug,
+      title,
+      description,
+      date: date ?? new Date(0).toISOString(),
+      updated: toIso(fm.updated) ?? toIso(fm.modified),
+      tags,
+      folder,
+      order: folderDir !== null ? null : orderFromName(name),
+      aliases: toStringList(fm.aliases ?? fm.alias),
+      visibility: isPrivate ? "private" : "public",
+      isFolderNote: folderDir !== null,
+      source: stripNoteExt(logical),
+      cover: coverOf(fm, options.attachmentsDir, file),
+      wordCount: prose,
+      readingMinutes,
+      headings: [],
+      links,
+    };
+    file.data.meta = meta;
+    file.data.searchText = plainText(tree);
+  };
+}
+
+const FOOTNOTE_LABEL = "footnote-label";
+
+export interface RehypeMetaOptions {
+  /** compiles the same source to an MDX `function-body` string (private notes only) */
+  compileBody?: (file: FileLike) => Promise<string>;
+}
+
+/**
+ * Collects h2-h4 (ids from rehype-slug) and appends `export const meta`, `export const searchText`
+ * (+ `export const body` for private notes) as an ESM node, so MDX handles them for every output
+ * format (program and function-body) and md/mdx alike.
+ */
+export function rehypeMeta(options: RehypeMetaOptions = {}) {
+  return async (tree: HastRoot, file: FileLike) => {
+    const meta = file.data.meta as MetaDraft | undefined;
+    if (!meta) return;
+    const headings: Heading[] = [];
+    visit(tree, "element", (node: Element) => {
+      const m = /^h([2-4])$/.exec(node.tagName);
+      if (!m) return;
+      const id = node.properties?.id;
+      if (typeof id !== "string" || id === FOOTNOTE_LABEL) return;
+      headings.push({ depth: Number(m[1]) as 2 | 3 | 4, text: hastToString(node).trim(), id });
+    });
+    meta.headings = headings;
+    const body: EsProgram["body"] = [
+      exportConst("meta", meta),
+      exportConst("searchText", (file.data.searchText as string | undefined) ?? ""),
+    ];
+    if (meta.visibility === "private" && options.compileBody) {
+      body.push(exportConst("body", await options.compileBody(file)));
+    }
+    const program: EsProgram = { type: "Program", body, sourceType: "module" };
+    tree.children.push({ type: "mdxjsEsm", value: "", data: { estree: program } } as never);
+  };
+}

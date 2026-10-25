@@ -1,0 +1,702 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@import "@fontsource-variable/inter/opsz.css";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
+@import "@fontsource-variable/jetbrains-mono/wght.css";
+@import "katex/dist/katex.min.css";
+
+/* Dark mode follows data-theme on <html> (set before paint by the inline theme script). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------------------
+   Design tokens. Base tokens are plain hex so JS (Mermaid, the graph canvas) can read them
+   with getComputedStyle; derived tints use color-mix in CSS.
+   --------------------------------------------------------------------------------------- */
+:root {
+  --bg: #faf9f6;
+  --surface: #ffffff;
+  --sunken: #f3f1ec;
+  --fg: #1f1d1a;
+  --muted: #625c53;
+  --subtle: #8d867b;
+  --line: #e6e2da;
+  --line-strong: #d4cec3;
+  --accent: #6d4fd1;
+  --accent-strong: #5a3dbd;
+  --accent-fg: #ffffff;
+  --warm: #c98a2b;
+
+  --accent-soft: color-mix(in oklab, var(--accent) 9%, transparent);
+  --accent-line: color-mix(in oklab, var(--accent) 28%, transparent);
+  --mark: color-mix(in oklab, #f2c14e 38%, transparent);
+  --ring: color-mix(in oklab, var(--accent) 55%, transparent);
+  --scrim: color-mix(in oklab, #1f1d1a 32%, transparent);
+
+  --shadow-sm: 0 1px 2px rgb(31 29 26 / 0.05);
+  --shadow-md: 0 1px 2px rgb(31 29 26 / 0.04), 0 8px 24px -12px rgb(31 29 26 / 0.14);
+  --shadow-lg: 0 2px 6px rgb(31 29 26 / 0.05), 0 28px 60px -20px rgb(31 29 26 / 0.28);
+
+  /* callout hues */
+  --c-note: #3c7ec4;
+  --c-summary: var(--accent);
+  --c-info: #3c7ec4;
+  --c-todo: #3c7ec4;
+  --c-tip: #13887a;
+  --c-success: #3b8a4a;
+  --c-question: #b9771a;
+  --c-warning: #b36b0e;
+  --c-failure: #c2433b;
+  --c-danger: #c2433b;
+  --c-bug: #c2433b;
+  --c-example: #5664c9;
+  --c-quote: #7a7469;
+
+  --header-h: 3.75rem;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #141312;
+  --surface: #1b1a18;
+  --sunken: #100f0e;
+  --fg: #ebe7e0;
+  --muted: #a8a196;
+  --subtle: #7c766c;
+  --line: #2a2825;
+  --line-strong: #3a3733;
+  --accent: #a995f0;
+  --accent-strong: #c0b1f6;
+  --accent-fg: #17131f;
+  --warm: #e4b261;
+
+  --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
+  --mark: color-mix(in oklab, #f2c14e 26%, transparent);
+  --scrim: color-mix(in oklab, #000 55%, transparent);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -12px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.3), 0 30px 70px -20px rgb(0 0 0 / 0.75);
+
+  --c-note: #7eb2ea;
+  --c-info: #7eb2ea;
+  --c-todo: #7eb2ea;
+  --c-tip: #5ccbbb;
+  --c-success: #7cc98a;
+  --c-question: #e8b35c;
+  --c-warning: #eaa954;
+  --c-failure: #f08a80;
+  --c-danger: #f08a80;
+  --c-bug: #f08a80;
+  --c-example: #9aa6f2;
+  --c-quote: #a8a196;
+  color-scheme: dark;
+}
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Newsreader Variable", "Iowan Old Style", Georgia, serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --breakpoint-xs: 26rem;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-warm: var(--warm);
+  --color-mark: var(--mark);
+  --color-scrim: var(--scrim);
+  --shadow-soft: var(--shadow-md);
+  --shadow-float: var(--shadow-lg);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+
+@keyframes grow {
+  from {
+    scale: var(--grow-from, 0 1);
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------------------- */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    scroll-padding-top: calc(var(--header-h) + 1.5rem);
+    background: var(--bg);
+  }
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    font-feature-settings: "cv11", "ss01";
+    min-height: 100dvh;
+    /* safety net: nothing may cause horizontal page scroll (wide things scroll in their own box) */
+    overflow-x: clip;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--accent) 24%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  /* smooth theme cross-fade on colour properties, disabled for the frame of a switch */
+  body,
+  .themed {
+    transition:
+      background-color 0.3s var(--ease-out-expo),
+      color 0.3s var(--ease-out-expo);
+  }
+  .theme-switching,
+  .theme-switching * {
+    transition: none !important;
+  }
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+  button {
+    cursor: pointer;
+  }
+  [hidden] {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------
+   Utilities / small components
+   --------------------------------------------------------------------------------------- */
+@utility container-page {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (width >= 40rem) {
+    padding-inline: 1.5rem;
+  }
+  @media (width >= 64rem) {
+    padding-inline: 2rem;
+  }
+}
+
+@utility container-prose {
+  width: 100%;
+  max-width: 44rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (width >= 40rem) {
+    padding-inline: 1.5rem;
+  }
+}
+
+/* first-paint entrance (no JS needed); motion takes over for client navigations */
+@utility enter {
+  animation: enter 0.6s var(--ease-out-expo) both;
+  animation-delay: calc(min(var(--i, 0), 12) * var(--step, 45ms) + var(--delay, 0ms));
+}
+
+/* scale-in from the transform origin (progress bars, timeline rail) */
+@utility grow {
+  animation: grow 0.9s var(--ease-out-expo) both;
+  animation-delay: calc(min(var(--i, 0), 20) * 20ms + var(--delay, 0ms));
+}
+
+/* underline that draws in from the left on hover */
+@utility link-draw {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.35s var(--ease-out-expo);
+  &:hover,
+  &:focus-visible {
+    background-size: 100% 1px;
+  }
+}
+
+@utility skeleton {
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    90deg,
+    var(--sunken) 0%,
+    color-mix(in oklab, var(--line) 70%, var(--sunken)) 50%,
+    var(--sunken) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* cursor-following glow; the element sets --mx/--my via spotlightHandlers() */
+@utility spotlight {
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.4s var(--ease-out-expo);
+    background: radial-gradient(
+      28rem circle at var(--mx, 50%) var(--my, 0%),
+      color-mix(in oklab, var(--accent) 9%, transparent),
+      transparent 45%
+    );
+  }
+  &:hover::before {
+    opacity: 1;
+  }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------
+   Prose (post body). Built on @tailwindcss/typography, tuned to the design.
+   --------------------------------------------------------------------------------------- */
+/* .prose.prose-garden: higher specificity than the typography plugin's .prose defaults (emitted later) */
+@layer utilities {
+  .prose.prose-garden {
+    --tw-prose-body: var(--fg);
+    --tw-prose-headings: var(--fg);
+    --tw-prose-lead: var(--muted);
+    --tw-prose-links: var(--accent-strong);
+    --tw-prose-bold: var(--fg);
+    --tw-prose-counters: var(--subtle);
+    --tw-prose-bullets: var(--line-strong);
+    --tw-prose-hr: var(--line);
+    --tw-prose-quotes: var(--fg);
+    --tw-prose-quote-borders: var(--accent-line);
+    --tw-prose-captions: var(--muted);
+    --tw-prose-code: var(--fg);
+    --tw-prose-pre-code: var(--fg);
+    --tw-prose-pre-bg: var(--sunken);
+    --tw-prose-th-borders: var(--line-strong);
+    --tw-prose-td-borders: var(--line);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    max-width: none;
+    overflow-wrap: break-word;
+
+    @media (width >= 40rem) {
+      font-size: 1.125rem;
+    }
+
+    & :where(p, ul, ol) {
+      color: color-mix(in oklab, var(--fg) 92%, var(--bg));
+    }
+
+    & :where(h2, h3, h4) {
+      font-family: var(--font-serif);
+      font-weight: 560;
+      letter-spacing: -0.012em;
+      scroll-margin-top: calc(var(--header-h) + 1.5rem);
+      text-wrap: balance;
+    }
+    & h2 {
+      font-size: 1.6em;
+      line-height: 1.2;
+      margin-top: 2.4em;
+      margin-bottom: 0.7em;
+    }
+    & h3 {
+      font-size: 1.27em;
+      line-height: 1.3;
+      margin-top: 1.9em;
+    }
+    & h4 {
+      font-family: var(--font-sans);
+      font-size: 1em;
+      font-weight: 620;
+      letter-spacing: 0;
+    }
+
+    & a:not([data-wikilink]):not(.tag):not([data-footnote-ref]):not(.heading-anchor) {
+      color: var(--accent-strong);
+      text-decoration-line: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+      text-decoration-color: var(--accent-line);
+      font-weight: 500;
+      transition: text-decoration-color 0.2s;
+      &:hover {
+        text-decoration-color: currentColor;
+      }
+    }
+
+    & :not(pre) > code {
+      font-size: 0.86em;
+      font-weight: 500;
+      padding: 0.14em 0.4em;
+      border-radius: 0.375rem;
+      background: var(--sunken);
+      border: 1px solid var(--line);
+      white-space: break-spaces;
+      font-variant-ligatures: none;
+      &::before,
+      &::after {
+        content: none;
+      }
+    }
+
+    & strong {
+      font-weight: 620;
+    }
+
+    & mark {
+      background: var(--mark);
+      color: inherit;
+      padding: 0.05em 0.2em;
+      border-radius: 0.25em;
+      box-decoration-break: clone;
+    }
+
+    & blockquote {
+      font-style: normal;
+      font-weight: 400;
+      border-inline-start-width: 2px;
+      padding-inline-start: 1.1em;
+      color: var(--muted);
+      & p:first-of-type::before,
+      & p:last-of-type::after {
+        content: none;
+      }
+    }
+
+    & hr {
+      margin-block: 3em;
+      border: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+    }
+
+    & :where(ul > li)::marker {
+      color: var(--subtle);
+    }
+    & li {
+      margin-block: 0.35em;
+    }
+
+    & img {
+      border-radius: 0.75rem;
+    }
+
+    & table {
+      margin: 0;
+      font-size: 0.9em;
+      font-variant-numeric: tabular-nums;
+    }
+    & thead th {
+      font-weight: 600;
+      padding: 0.6em 0.9em;
+    }
+    & tbody td {
+      padding: 0.55em 0.9em;
+    }
+
+    /* Obsidian bits */
+    & a.tag {
+      font-size: 0.85em;
+      font-weight: 500;
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      padding: 0.1em 0.5em;
+      border-radius: 999px;
+      text-decoration: none;
+    }
+    & .wikilink-unresolved {
+      color: var(--muted);
+      text-decoration: underline dotted var(--line-strong);
+      text-underline-offset: 3px;
+      cursor: help;
+    }
+
+    /* footnotes */
+    & sup {
+      line-height: 0;
+    }
+    & a[data-footnote-ref] {
+      font-family: var(--font-sans);
+      font-size: 0.72em;
+      font-weight: 600;
+      color: var(--accent-strong);
+      text-decoration: none;
+      padding: 0.1em 0.3em;
+      margin-inline-start: 0.1em;
+      border-radius: 0.3em;
+      background: var(--accent-soft);
+      &::before {
+        content: "[";
+        opacity: 0;
+        position: absolute;
+      }
+    }
+    & section[data-footnotes] {
+      margin-top: 4em;
+      padding-top: 1.5em;
+      border-top: 1px solid var(--line);
+      font-size: 0.86em;
+      color: var(--muted);
+      & h2 {
+        font-family: var(--font-sans);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-top: 0;
+        color: var(--subtle);
+      }
+      & ol {
+        padding-inline-start: 1.3em;
+      }
+      & li {
+        scroll-margin-top: calc(var(--header-h) + 1.5rem);
+        border-radius: 0.5rem;
+        transition: background-color 0.6s;
+      }
+      & li:target {
+        background: var(--accent-soft);
+      }
+      & p {
+        color: inherit;
+        margin-block: 0.4em;
+      }
+      & a[data-footnote-backref] {
+        text-decoration: none;
+        font-family: var(--font-sans);
+        margin-inline-start: 0.25em;
+        color: var(--accent);
+      }
+    }
+
+    /* KaTeX */
+    & .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-block: 0.6em;
+      margin-block: 1.5em;
+      scrollbar-width: thin;
+    }
+    & .katex {
+      font-size: 1.08em;
+    }
+
+    /* direct children of the article get a calm vertical rhythm */
+    & > :first-child {
+      margin-top: 0;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------------------
+   Shiki dual themes (defaultColor: false). Every token carries --shiki-light/--shiki-dark.
+   --------------------------------------------------------------------------------------- */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
+}
+[data-theme="dark"] .shiki,
+[data-theme="dark"] .shiki span {
+  color: var(--shiki-dark);
+  font-style: var(--shiki-dark-font-style);
+  font-weight: var(--shiki-dark-font-weight);
+  text-decoration: var(--shiki-dark-text-decoration);
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 1rem 1.15rem 1.1rem;
+  background: transparent !important;
+  border-radius: 0;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  tab-size: 2;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  @media (width >= 40rem) {
+    font-size: 0.85rem;
+  }
+}
+.code-block pre code {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.code-block .line.highlighted {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+  margin-inline: -1.15rem;
+  padding-inline: 1.15rem;
+  display: inline-block;
+  width: calc(100% + 2.3rem);
+}
+
+/* ---------------------------------------------------------------------------------------
+   Callouts: each type sets --c; the component reads it for icon/title/tint.
+   --------------------------------------------------------------------------------------- */
+.callout {
+  --c: var(--c-note);
+}
+.callout[data-callout="abstract"],
+.callout[data-callout="summary"],
+.callout[data-callout="tldr"] {
+  --c: var(--c-summary);
+}
+.callout[data-callout="info"] {
+  --c: var(--c-info);
+}
+.callout[data-callout="todo"] {
+  --c: var(--c-todo);
+}
+.callout[data-callout="tip"],
+.callout[data-callout="hint"],
+.callout[data-callout="important"] {
+  --c: var(--c-tip);
+}
+.callout[data-callout="success"],
+.callout[data-callout="check"],
+.callout[data-callout="done"] {
+  --c: var(--c-success);
+}
+.callout[data-callout="question"],
+.callout[data-callout="help"],
+.callout[data-callout="faq"] {
+  --c: var(--c-question);
+}
+.callout[data-callout="warning"],
+.callout[data-callout="caution"],
+.callout[data-callout="attention"] {
+  --c: var(--c-warning);
+}
+.callout[data-callout="failure"],
+.callout[data-callout="fail"],
+.callout[data-callout="missing"] {
+  --c: var(--c-failure);
+}
+.callout[data-callout="danger"],
+.callout[data-callout="error"] {
+  --c: var(--c-danger);
+}
+.callout[data-callout="bug"] {
+  --c: var(--c-bug);
+}
+.callout[data-callout="example"] {
+  --c: var(--c-example);
+}
+.callout[data-callout="quote"],
+.callout[data-callout="cite"] {
+  --c: var(--c-quote);
+}
+
+/* ---------------------------------------------------------------------------------------
+   Mermaid: final polish on top of themeVariables (rounded nodes, soft edges).
+   --------------------------------------------------------------------------------------- */
+.mermaid-svg svg {
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+  display: block;
+}
+.mermaid-svg :is(.node rect, .node polygon, .node circle, .node path) {
+  stroke-width: 1.25px;
+}
+.mermaid-svg .node rect {
+  rx: 10px;
+  ry: 10px;
+}
+.mermaid-svg .cluster rect {
+  rx: 14px;
+  ry: 14px;
+  stroke-dasharray: 3 4;
+}
+.mermaid-svg :is(.flowchart-link, .edgePath .path, .messageLine0, .messageLine1, .relation) {
+  stroke-width: 1.4px;
+  stroke-linecap: round;
+}
+.mermaid-svg :is(.edgeLabel, .edgeLabel rect, .labelBkg) {
+  border-radius: 6px;
+}
+.mermaid-svg .nodeLabel,
+.mermaid-svg .label {
+  font-weight: 500;
+}
+.mermaid-svg .nodeLabel code,
+.mermaid-svg .edgeLabel code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+/* print: plain and legible */
+@media print {
+  header,
+  footer,
+  nav,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+}
