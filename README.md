@@ -6,6 +6,11 @@ A blog that publishes my Obsidian vault (`../obsidian`).
 [Vite+](https://viteplus.dev) (Vite 8 / Rolldown), Nitro for deployment, Tailwind CSS v4,
 `motion/react`, MDX (`@mdx-js/rollup` + remark/rehype, Shiki, KaTeX), and Mermaid.
 
+## Publish your own vault
+
+Want this for your own Obsidian vault? Follow [docs/publishing-your-vault.md](docs/publishing-your-vault.md),
+a fork-and-go guide with a ready-to-copy vault starter kit in `docs/vault-starter/`.
+
 ## Scripts
 
 | Command           | What it does                                                                                         |
