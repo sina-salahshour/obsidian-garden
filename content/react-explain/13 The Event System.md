@@ -2,7 +2,7 @@
 tags: [react, react-internals, events, react-dom]
 aliases: [Event System, Synthetic Events]
 react-version: 19.3.1
-created: 2026-10-24T19:46:01.461Z
+created: 2026-10-25T11:53:30.368Z
 ---
 
 # The Event System
@@ -200,7 +200,23 @@ Because the update is `SyncLane`, `scheduleTaskForRootDuringMicrotask` doesn't c
 
 Unchanged. The event system lives in `react-dom-bindings` and runs no component code apart from your handlers. What the compiler changes is **handler identity**. Without it, `onClick={() => setCount(c => c + 1)}` is a new function every render, which is harmless for DOM elements: React just reads the latest one from `__reactProps$`, and attribute diffing treats event props specially. But it breaks `memo` on child *components* that receive the handler. The compiler caches such closures in its memo cache (keyed on the values they capture), so `memo` children and effect deps see stable functions. See [[14 React Compiler - How It Works|React Compiler]] and [[15 Rendering With vs Without the Compiler|With vs Without Compiler]].
 
+## Summary
+
+React never puts your `onClick` on the button. `createRoot` installs one capture and one bubble listener per native event type on the root container, each wrapped with a priority. On a click, React finds the target's fiber through a hidden key on the DOM node, walks `fiber.return` collecting handlers, and calls them with one shared `SyntheticEvent`. The priority scope around that call is the link to [[12 setState - dispatchSetState and Batching|setState]]: every `setState` in the handler gets `SyncLane` and is rendered and committed in a microtask before paint. Next, the compiler, which changes handler identity but not this pipeline.
+
+### Key takeaways
+
+- **`listenToAllSupportedEvents`**: runs once per container; `nonDelegatedEvents` get only a capture listener here and are also attached to the element.
+- **`createEventListenerWrapperWithPriority`**: picks the wrapper from `getEventPriority`, so priority is baked into the listener.
+- **`dispatchDiscreteEvent`**: sets `DiscreteEventPriority` (= `SyncLane`) and clears the transition around the dispatch, then restores both.
+- **`__reactFiber$` / `__reactProps$`**: expandos written by `createInstance` and refreshed by `commitUpdate`; they map a DOM target to its fiber and hold the latest committed props.
+- **`accumulateSinglePhaseListeners`**: walks the fiber tree, not the DOM, so events bubble through portals; only host fibers contribute.
+- **`processDispatchQueue`**: runs one list backwards for capture and forwards for bubble; a throwing handler doesn't stop the others.
+- **`SyntheticEvent`**: one per dispatch, shared by all listeners; `persist()` is a no-op since pooling was removed.
+- **Sync flush**: a `SyncLane` update gets no Scheduler task and renders in a microtask, so the DOM changes before the next paint.
+
 ---
+
 ← [[12 setState - dispatchSetState and Batching|Prev]] · [[00 React Internals Index|Index]] · [[14 React Compiler - How It Works|Next]] →
 
 [^createroot]: `createRoot` calls `listenToAllSupportedEvents` — [packages/react-dom/src/client/ReactDOMRoot.js#L171-L262](https://github.com/facebook/react/blob/v19.3.1/packages/react-dom/src/client/ReactDOMRoot.js#L171-L262)

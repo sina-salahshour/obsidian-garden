@@ -2,7 +2,7 @@
 tags: [react, react-internals, walkthrough, setState, events]
 aliases: [setState Walkthrough]
 react-version: 19.3.1
-created: 2026-10-24T20:14:55.206Z
+created: 2026-10-25T11:53:30.928Z
 ---
 
 # Walkthrough: setState to Pixels
@@ -446,7 +446,25 @@ flowchart TD
 
 Counted over the whole update: **component functions called** 3 → 1, **`beginWork` calls** 8 → 6, **host fibers diffed at commit** 4 → 2, **DOM writes that change pixels** 1 → 1. In this tiny app that's noise. Under a real `Header` with a hundred descendants, it's the difference between re-rendering a hundred fibers and touching one. See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]] for the same effect on a larger tree, and [[14 React Compiler - How It Works|React Compiler]] for how the scopes are derived.
 
+## Summary
+
+A click reaches React through the root listener `createRoot` installed, and `dispatchDiscreteEvent` sets the priority around your handler, so `setCount` gets `SyncLane`. The update is buffered, and once the handler returns a microtask renders and commits it synchronously, with no Scheduler task. The render follows `childLanes` down to `App`, re-runs it and, without the compiler, `Header` and `Footer` too; the diff happens at commit and the only real write is the button's text. With the compiler, cached elements make `Header` and `Footer` bail out, and the DOM writes stay identical.
+
+### Key takeaways
+
+- **Root listener to fiber**: the bubble listener maps the target to the `button` fiber via `__reactFiber$` and collects `onClick` from the latest committed `__reactProps$` ([[13 The Event System|Event System]]).
+- **`SyncLane` from the event**: `requestUpdateLane` reads `DiscreteEventPriority`, which is `SyncLane` ([[12 setState - dispatchSetState and Batching|setState]]).
+- **Eager state**: the reducer runs early only when no lanes are pending, so "same value means no render" is best-effort, not a guarantee.
+- **Buffered, then linked**: `enqueueConcurrentHookUpdate` parks the update; `finishQueueingConcurrentUpdates` links it and sets `childLanes` on every ancestor in `prepareFreshStack`.
+- **No Scheduler task**: for `SyncLane`, `flushSyncWorkAcrossRoots_impl` renders inside the microtask.
+- **Bail to App, then render**: the HostRoot bails out and clones its child; `App` has the lane, so `updateReducerImpl` reuses the eager `1` and flips `didReceiveUpdate` ([[11 Hooks on Update|Hooks on Update]]).
+- **The uncompiled cascade**: new element objects mean new props objects, so `Header` and `Footer` re-render on identity alone ([[07 beginWork and Reconciliation|beginWork]]).
+- **Mark, don't diff**: `completeWork` only calls `markUpdate`; `commitUpdate` → `updateProperties` does the real diff and writes only the button's text.
+- **Effects before paint**: layout effects run after the swap, and because the commit includes `SyncLane`, `flushSpawnedWork` flushes passive effects before the browser paints.
+- **With the compiler**: `App` still renders, but cached `<Header/>` and `<Footer/>` make `oldProps === newProps` true, so their subtrees are skipped ([[15 Rendering With vs Without the Compiler|With vs Without Compiler]]).
+
 ---
+
 ← [[20 Walkthrough - First Render End to End|Prev]] · [[00 React Internals Index|Index]] · [[00 React Internals Index|Next]] →
 
 [^listen]: `listenToAllSupportedEvents` — [packages/react-dom-bindings/src/events/DOMPluginEventSystem.js#L432-L459](https://github.com/facebook/react/blob/v19.3.1/packages/react-dom-bindings/src/events/DOMPluginEventSystem.js#L432-L459)

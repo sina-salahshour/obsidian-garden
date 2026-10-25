@@ -285,6 +285,21 @@ Interaction with bailouts:
 
 What changes in practice: in a compiled component, most of the `useMemo`/`useCallback` hook nodes and their `areHookInputsEqual` calls go away. Your `useState`/`useEffect` hooks still go through exactly the paths above, because the compiler doesn't change the reconciler. The big difference is *downstream*. Because the compiler memoizes JSX elements and the props objects it passes to children, children more often see `oldProps === newProps` and take the **early** bailout in `beginWork` instead of re-rendering. Deps arrays for your `useEffect` are also built from memoized values, so effects fire less often by accident. See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]] and [[14 React Compiler - How It Works|React Compiler]].
 
+## Summary
+
+On a re-render, `renderWithHooks` installs `HooksDispatcherOnUpdate`, and each hook call shallowly clones the matching node from the committed fiber's list. `useState` and `useReducer` merge pending updates into a `baseQueue` and replay it, skipping updates whose lane is not in this render and keeping them for later, so the final state still matches applying every update in insertion order. Whether the output counts comes down to one flag: `didReceiveUpdate`, set only when state changed by `Object.is` or a read context changed. If it stays `false`, `bailoutHooks` throws the render away after your function already ran. [[12 setState - dispatchSetState and Batching|setState]] covers how those updates got queued in the first place.
+
+### Key takeaways
+
+- **`updateWorkInProgressHook`**: walks the current and WIP lists in lockstep and shallowly clones each hook, sharing `queue` so `setState` reaches whichever twin commits.
+- **`baseQueue` merge**: splicing `queue.pending` in is two pointer swaps, and the merged queue is also written to `current` so a restarted render can find it.
+- **Rebasing**: skipped updates and every update after them are kept, and `baseState` is the state before the first skipped update, so reducers must be pure.
+- **Eager state**: `hasEagerState` lets replay reuse the value `dispatchSetState` computed.
+- **`updateEffectImpl`**: every effect is pushed each render, but only those with changed deps get `HookHasEffect` and set `PassiveEffect` on the fiber.
+- **`updateMemo` / `updateCallback`**: cache exactly one previous value against `Object.is`-compared deps, and React may drop it.
+- **`bailoutHooks`**: restores `updateQueue` from current and clears effect flags, but keeps the processed hook list.
+- **`useMemoCache` on update**: clones the committed cache arrays copy-on-write, so abandoned renders cannot leak values into `current`.
+
 ---
 ← [[10 Hooks on Mount|Prev]] · [[00 React Internals Index|Index]] · [[12 setState - dispatchSetState and Batching|Next]] →
 

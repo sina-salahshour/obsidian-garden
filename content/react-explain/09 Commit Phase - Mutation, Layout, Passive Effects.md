@@ -333,6 +333,21 @@ The commit phase is **unchanged**. It consumes flags, and the compiler doesn't t
 
 See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]] and the full timelines in [[20 Walkthrough - First Render End to End|First Render Walkthrough]] and [[21 Walkthrough - setState to Pixels|setState Walkthrough]].
 
+## Summary
+
+The commit phase applies the finished tree from [[08 completeWork - Building DOM Nodes|completeWork]] synchronously and without yielding, in fixed sub-phases: before mutation, mutation, the `root.current` swap, layout, then passive effects. It is a state machine so View Transitions can defer mutation. The mental model: everything from mutation through layout effects, plus any sync re-render they trigger, is one block of JS that finishes before the browser can paint. `useEffect` usually runs after paint in a separate Scheduler task, but before paint when the commit came from a discrete update like a click, and even "after paint" is a heuristic left to the browser.
+
+### Key takeaways
+
+- **`completeRoot`**: flushes any leftover passive effects first, so effects of commit N run before render or commit N+1.
+- **`commitRoot`**: posts the passive-effects task before any mutation and runs every phase at `DiscreteEventPriority`, so a `setState` in a layout effect is sync.
+- **`prepareForCommit`**: saves focus and selection and disables the event system; on first render the root's `Snapshot` triggers `clearContainer`.
+- **Mutation order**: deletions, children's effects, own placement, own update; a deleted or inserted subtree costs one `removeChild` or one `appendChild`.
+- **`useInsertionEffect` and layout cleanups**: both run during mutation, so all cleanups happen before any setup.
+- **`root.current = finishedWork`**: sits between mutation and layout so unmount code sees the old tree and mount code sees the new one.
+- **Layout phase**: children-first, so child refs and `useLayoutEffect` run before the parent's, with real layout but no paint yet.
+- **`flushSpawnedWork`**: calls `requestPaint()`, flushes passive effects immediately for `SyncLane` commits, and re-renders sync `setState` from layout effects in the same task.
+
 ← [[08 completeWork - Building DOM Nodes|completeWork]] · [[00 React Internals Index|Index]] · [[10 Hooks on Mount|Hooks on Mount]] →
 
 [^cr]: `completeRoot` (flush-previous-effects loop at L3530-L3532) — [packages/react-reconciler/src/ReactFiberWorkLoop.js#L3511-L3723](https://github.com/facebook/react/blob/v19.3.1/packages/react-reconciler/src/ReactFiberWorkLoop.js#L3511-L3723)

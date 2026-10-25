@@ -2,7 +2,7 @@
 tags: [react, react-internals, createRoot, fiber-root]
 aliases: [createRoot]
 react-version: 19.3.1
-created: 2026-10-24T19:44:02.614Z
+created: 2026-10-25T11:52:02.221Z
 ---
 
 # createRoot - FiberRoot and HostRoot
@@ -195,6 +195,22 @@ ReactDOMRoot.prototype.unmount = function () { /* ... */ updateContainerSync(nul
 ## With the React Compiler
 
 Nothing here changes. `createRoot`, the FiberRoot and the HostRoot fiber are reconciler and renderer code. The compiler only rewrites component bodies and never touches `react-dom`. The only setup difference you might see is that compiled components call `_c(n)` on their first render. That allocates the memo cache on *their own* fiber's update queue, not on the root (see [[14 React Compiler - How It Works|React Compiler]]).
+
+## Summary
+
+`createRoot` sets the stage and renders nothing. It validates the container, builds a FiberRoot and a HostRoot fiber that point at each other, marks the container, attaches every event listener, and returns a thin `ReactDOMRoot`. The FiberRoot is the single, un-double-buffered owner of per-tree state (lanes, the scheduled callback, the container). The HostRoot fiber tops the fiber tree, and its class-style update queue is where `root.render` enqueues an `{element}` update in [[03 root.render - Scheduling the First Update|the next part]].
+
+### Key takeaways
+
+- **`isValidContainer`**: anything but an Element, Document or DocumentFragment throws `Target container is not a DOM element.`, typically a `null` from `getElementById`.
+- **`ConcurrentRoot` only**: with `disableLegacyMode`, every root is concurrent and `ReactDOM.render` is gone, so automatic batching is unconditional.
+- **`createFiberRoot`**: builds the cycle, `root.current` is the HostRoot and `hostRootFiber.stateNode` is the root.
+- **`FiberRootNode`**: not a fiber, a plain object for per-tree state such as `pendingLanes` and `callbackNode`.
+- **`createHostRootFiber`**: sets `mode` bits every fiber below inherits; no alternate exists until `prepareFreshStack`.
+- **`initializeUpdateQueue`**: the class-component queue shape, so rendering the root means processing it to compute a new `element`.
+- **`markContainerAsRoot`**: a randomly suffixed `__reactContainer$` key used by DEV warnings, event dispatch and isolation between React copies.
+- **`listenToAllSupportedEvents`**: eager capture and bubble listeners on the container, so later `onClick` props cost nothing at the DOM level.
+- **`ReactDOMRoot`**: one field, two methods; `render` takes no callback and `unmount` is synchronous.
 
 ← [[01 Bootstrap - Packages, JSX and the Dispatcher|Prev]] · [[00 React Internals Index|Index]] · [[03 root.render - Scheduling the First Update|Next]] →
 

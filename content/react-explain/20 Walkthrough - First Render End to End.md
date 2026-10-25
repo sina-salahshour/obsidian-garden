@@ -2,7 +2,7 @@
 tags: [react, react-internals, walkthrough, first-render]
 aliases: [First Render Walkthrough]
 react-version: 19.3.1
-created: 2026-10-24T20:10:38.100Z
+created: 2026-10-25T11:53:30.807Z
 ---
 
 # Walkthrough: First Render End to End
@@ -486,7 +486,25 @@ The cost on mount is three small arrays (13 + 2 + 1 slots), a few comparisons an
 | 21. Paint | After the task ends | Same |
 | 22. Passive effect | Next Scheduler task | Same |
 
+## Summary
+
+`createRoot(el).render(<App/>)` renders nothing synchronously: it builds the root objects, attaches the listeners, buffers one `DefaultLane` update and books a microtask. The microtask books a Scheduler task, which renders the whole tree with `renderRootSync`, because `DefaultLane` is blocking and never time-sliced. The DOM is built off-screen, inserted with one `appendChildToContainer`, layout effects run, the browser paints, and `useEffect` runs in a later task. The compiler only adds cache filling; its payoff comes on the next render, in the click walkthrough.
+
+### Key takeaways
+
+- **JSX and `createRoot`**: elements are inert objects; `createRoot` builds the `FiberRootNode` and HostRoot fiber and calls `listenToAllSupportedEvents` before any component runs.
+- **`requestUpdateLane`**: with no React event and no transition, a top-level `root.render` resolves to `DefaultEventPriority`, which is `DefaultLane`.
+- **Buffered update**: `enqueueConcurrentClassUpdate` parks the update in `concurrentQueues`; `prepareFreshStack` links it into `shared.pending` only when the render starts ([[03 root.render - Scheduling the First Update|root.render]]).
+- **One microtask, then a task**: `ensureRootIsScheduled` queues one microtask, and `scheduleTaskForRootDuringMicrotask` books a `NormalPriority` Scheduler task because the lanes don't include `SyncLane` ([[04 Lanes and the Scheduler|Lanes & Scheduler]]).
+- **Not time-sliced**: `includesBlockingLane` covers `DefaultLane`, so `shouldTimeSlice` is `false`; `createRoot` makes the first render asynchronous, not interruptible ([[06 The Work Loop - Render Phase|Work Loop]]).
+- **`Placement` only on App**: the HostRoot reconciles with side-effect tracking on, while everything below goes through `mountChildFibers`.
+- **Hooks on mount**: `HooksDispatcherOnMount` builds the hook list, binds `setCount` to `dispatchSetState`, and flags the fiber `Update | Passive`.
+- **`completeWork`**: `createInstance` writes the `__reactFiber$`/`__reactProps$` expandos, `appendAllChildren` assembles the detached tree, and `bubbleProperties` summarises flags ([[08 completeWork - Building DOM Nodes|completeWork]]).
+- **Commit**: passive effects are scheduled first, `clearContainer` runs, one `appendChildToContainer` inserts the UI, then `root.current = finishedWork` and layout effects run before paint ([[09 Commit Phase - Mutation, Layout, Passive Effects|Commit Phase]]).
+- **Paint, then `useEffect`**: `requestPaint` makes Scheduler yield, the browser paints, and the passive effect runs in the next task because this commit was not `SyncLane`.
+
 ---
+
 ← [[15 Rendering With vs Without the Compiler|Prev]] · [[00 React Internals Index|Index]] · [[21 Walkthrough - setState to Pixels|Next]] →
 
 [^sstc]: `shouldSetTextContent` — [packages/react-dom-bindings/src/client/ReactFiberConfigDOM.js#L744-L755](https://github.com/facebook/react/blob/v19.3.1/packages/react-dom-bindings/src/client/ReactFiberConfigDOM.js#L744-L755)

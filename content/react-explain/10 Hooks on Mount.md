@@ -2,7 +2,7 @@
 tags: [react, react-internals, hooks]
 aliases: [Hooks on Mount]
 react-version: 19.3.1
-created: 2026-10-24T19:55:47.511Z
+created: 2026-10-25T11:55:39.401Z
 ---
 
 # Hooks on Mount
@@ -281,6 +281,22 @@ Gotchas worth knowing:
 - In DEV, if `ignorePreviousDependencies` is set (Fast Refresh swapped the component type), the cache array is reallocated. A different `size` on the same call logs an error.[^umc]
 
 Comparison with [[15 Rendering With vs Without the Compiler|manual memoization]]: a hand-written `useMemo` costs one Hook node plus a `[value, deps]` tuple per call. The compiler's cache costs one flat array per component, however many values it memoizes.
+
+## Summary
+
+A function component's first render runs inside `renderWithHooks`, which installs the mount dispatcher on `ReactSharedInternals.H`, calls your function, and then swaps in a dispatcher that throws. Each hook call appends one `Hook` node to a linked list on `fiber.memoizedState`, and effects also go on a circular ring in `fiber.updateQueue`. Nothing is named or keyed: a hook's identity is its position in that list, and the rules of hooks follow directly from it. The compiler's `useMemoCache` sidesteps the list entirely and keeps its cache on `fiber.updateQueue.memoCache`. [[11 Hooks on Update|Hooks on Update]] shows how the next render walks this list in step.
+
+### Key takeaways
+
+- **`renderWithHooks`**: picks `HooksDispatcherOnMount` when `current === null || current.memoizedState === null`, then installs `ContextOnlyDispatcher`, so hooks outside render throw.
+- **`mountWorkInProgressHook`**: appends a node using a module-level cursor; there is no index variable.
+- **`mountState`**: `useState` is `useReducer` with `basicStateReducer`, and its setter is `dispatchSetState` bound to the fiber and queue, created once and stable.
+- **`mountEffectImpl`**: sets a fiber flag (`PassiveEffect`) that bubbles to `subtreeFlags`, plus hook tags (`HookHasEffect | HookPassive`) that the commit phase filters on.
+- **`useRef`**: a hook slot holding a mutable object; writing `ref.current` schedules nothing.
+- **`useContext` and `use`**: neither takes a hook slot; `readContext` writes to `fiber.dependencies` and `use` has its own thenable counter (the rules of hooks still apply to `useContext`).
+- **Rules of hooks**: on update the *n*-th call is paired with the *n*-th node from the last render, so conditional calls read the wrong state or throw.
+- **StrictMode**: the second call reuses the hook list from the first, so only the body and initializer functions run twice.
+- **`useMemoCache`**: one flat array per component, filled with `REACT_MEMO_CACHE_SENTINEL` on mount.
 
 ---
 ← [[09 Commit Phase - Mutation, Layout, Passive Effects|Prev]] · [[00 React Internals Index|Index]] · [[11 Hooks on Update|Next]] →

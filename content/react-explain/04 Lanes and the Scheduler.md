@@ -2,7 +2,7 @@
 tags: [react, react-internals, lanes, scheduler, concurrency]
 aliases: [Lanes & Scheduler]
 react-version: 19.3.1
-created: 2026-10-24T19:51:35.461Z
+created: 2026-10-25T11:52:25.362Z
 ---
 
 # Lanes and the Scheduler
@@ -209,6 +209,22 @@ Step 5 is why render must be pure: work can be discarded at any time. It is also
 ## With the React Compiler
 
 Lanes and the Scheduler are unchanged: the compiler emits no scheduling code. The indirect effect is real, though. Time slicing has fiber granularity, and compiled components skip re-rendering unchanged subtrees (memoized JSX → `bailoutOnAlreadyFinishedWork`). So a transition render visits fewer fibers, does less work per slice, and yields less often. Compiled code also makes any individual expensive `render` cheaper on re-render, which shortens the unavoidable non-preemptible chunks. See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]].
+
+## Summary
+
+Priority is two systems glued together. Lanes are bits in a 31-bit mask, so batching and priority become bitwise operations, and the reconciler maps them to Scheduler priorities only when it books a root task. The Scheduler is a React-agnostic min-heap of deadline-keyed tasks drained in ~5 ms slices from `MessageChannel` messages. In 19, Sync lanes skip the Scheduler, Default and continuous work never yields within the render, and only transition, retry, idle and offscreen work is time-sliced. Next: the fiber, the unit of work the loop walks.
+
+### Key takeaways
+
+- **Lanes as bitmasks**: lower bit means higher priority, and `lanes & -lanes` finds the most urgent lane in O(1).
+- **`SyncUpdateLanes`**: Sync, InputContinuous and Default batch together, so one render can process a click and a timer update.
+- **Event priorities**: `DiscreteEventPriority` and its siblings are literally lanes.
+- **`getNextLanes`**: prefers non-idle, unsuspended lanes and interrupts a render only for a strictly higher-priority lane.
+- **`markStarvedLanesAsExpired`**: expired lanes force the sync loop, so starved transitions eventually finish.
+- **`shouldTimeSlice`**: blocking or expired lanes use `workLoopSync`; the rest use `workLoopConcurrentByScheduler`, checking `shouldYield()` between fibers.
+- **`unstable_scheduleCallback`**: priority is a deadline in a min-heap, and cancelling just nulls the callback.
+- **`MessageChannel` host loop**: chosen over `setTimeout`, `requestIdleCallback` and `requestAnimationFrame` for steady 5 ms slices with paints between them.
+- **Continuations**: a task returning a function keeps its heap position, which is how interrupted renders resume; yielding is cooperative, with fiber granularity.
 
 ← [[03 root.render - Scheduling the First Update|Prev]] · [[00 React Internals Index|Index]] · [[05 The Fiber Data Structure|Next]] →
 

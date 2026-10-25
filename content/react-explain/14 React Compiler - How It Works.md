@@ -2,7 +2,7 @@
 tags: [react, react-internals, react-compiler]
 aliases: [React Compiler]
 react-version: 19.3.1
-created: 2026-10-24T19:36:41.791Z
+created: 2026-10-25T11:54:06.346Z
 ---
 
 # React Compiler - How It Works
@@ -310,7 +310,24 @@ Other skip reasons: an ESLint or Flow suppression comment for React rules inside
 
 See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]] for the fiber-by-fiber effect on a state update.
 
+## Summary
+
+React Compiler is a build-time Babel plugin that rewrites each component and hook to memoize its own values and JSX in a per-fiber array, `const $ = _c(n)`. It lowers your function into a control-flow-graph IR, infers what mutates together and what is reactive, groups that into reactive scopes, and emits one `$[i] !== dep` check per scope. At runtime it needs only `useMemoCache`. The reconciler, scheduler and commit phase are untouched; the compiler just hands them stable identities, and the next part shows which bailouts those hit.
+
+### Key takeaways
+
+- **`compilationMode`**: `'infer'` compiles only component- or hook-named functions that create JSX or call a hook; `"use no memo"` always wins.
+- **HIR lowering**: memoization needs data-flow facts, so the AST becomes a control-flow graph of basic blocks.
+- **Mutable range**: a value is cached as a unit only once it is done being built, so everything that mutates it shares one memo block.
+- **`inferReactivePlaces`**: props, state, context and hook results are reactive; a `useState` setter is stable.
+- **`flattenScopesWithHooksOrUseHIR`**: drops scopes containing hooks, which is why `useState` sits outside the `if ($[i] ...)` blocks.
+- **Codegen**: emits `$[i] !== dep` checks, or a sentinel test for dependency-free scopes, and writes a scope's inputs and outputs together.
+- **`useMemoCache`**: keeps the cache on `fiber.updateQueue.memoCache`, not the hook list, and on update clones it copy-on-write (`enableNoCloningMemoCache` is off).
+- **Bailouts**: by default a function that fails validation is emitted unchanged; the compiler catches only what it can prove (`items.push(1)` compiled).
+- **Not fine-grained**: React still re-renders top-down from the state owner; re-renders just get cheaper.
+
 ---
+
 ← [[13 The Event System|Prev]] · [[00 React Internals Index|Index]] · [[15 Rendering With vs Without the Compiler|Next]] →
 
 [^blog]: React Compiler v1.0 (Lauren Tan, Joe Savona, Mofei Zhang, 7 Oct 2025): https://react.dev/blog/2025/10/07/react-compiler-1

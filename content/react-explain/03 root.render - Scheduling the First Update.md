@@ -2,7 +2,7 @@
 tags: [react, react-internals, root-render, scheduling]
 aliases: [root.render]
 react-version: 19.3.1
-created: 2026-10-24T19:49:55.856Z
+created: 2026-10-25T11:52:02.360Z
 ---
 
 # root.render - Scheduling the First Update
@@ -277,6 +277,22 @@ Because rendering starts in a macrotask and not a microtask, the browser *can* p
 ## With the React Compiler
 
 Unchanged. The compiler does not touch `react-dom` or the reconciler's scheduling code. `root.render` still produces exactly one update on the HostRoot at the same lane. The compiler's effect shows up later, inside the render (fewer allocations of JSX and closures, and skipped child work on updates). It does not change how much work gets *scheduled*. See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]].
+
+## Summary
+
+`root.render(<App />)` only records intent. It picks a lane, wraps the element in an `Update`, buffers it, marks the lane pending on the FiberRoot from [[02 createRoot - FiberRoot and HostRoot|createRoot]], and queues one microtask. That microtask is the batching boundary: every update from the same synchronous turn lands in `pendingLanes` before the root scheduler flushes sync work or books a Scheduler task. The first render is asynchronous, not time-sliced. The next part covers the lanes and Scheduler this path leans on.
+
+### Key takeaways
+
+- **`requestUpdateLane`**: decides every update's lane; a top-level `root.render` gets `DefaultLane`.
+- **Call site matters**: a native `click` listener or `flushSync` gives `SyncLane`, `startTransition` a transition lane.
+- **`updateContainerImpl`**: builds an `UpdateState` update whose `{element}` payload is shallow-merged into the HostRoot state.
+- **`concurrentQueues`**: linking is deferred so an in-progress render never sees half of an event's updates.
+- **`markRootUpdated`**: sets the lane in `root.pendingLanes`, the root's only record that work exists.
+- **`ensureRootIsScheduled`**: lists the root and queues at most one microtask per tick, which makes batching automatic everywhere.
+- **`scheduleTaskForRootDuringMicrotask`**: sync lanes flush at the end of the microtask, same-priority tasks are reused, anything else books a Scheduler task.
+- **`performWorkOnRootViaSchedulerTask`**: recomputes `getNextLanes`, calls `performWorkOnRoot`, and returns a continuation if the same task is still scheduled.
+- **`includesBlockingLane`**: includes `DefaultLane`, so the initial render runs in `renderRootSync`; only `startTransition` gets you yielding.
 
 ← [[02 createRoot - FiberRoot and HostRoot|Prev]] · [[00 React Internals Index|Index]] · [[04 Lanes and the Scheduler|Next]] →
 

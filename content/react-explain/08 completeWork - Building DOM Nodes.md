@@ -294,6 +294,20 @@ The **bailout** branch matters. When `completedWork.child` is still the *current
 
 So the compiler cuts both render-phase work and commit-phase prop diffing. See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]].
 
+## Summary
+
+`completeWork` is the upward half of the render phase: it runs post-order, once all of a fiber's children are done, which is what lets React build the DOM bottom-up. A newly mounted host fiber creates its node, appends its nearest host descendants and sets its attributes, so the finished subtree sits detached from the document: one live `appendChild` at commit, or garbage if the render is discarded. On updates React 19 does not diff props here; it only checks `oldProps !== newProps` and sets `Update`, leaving the diff to the commit phase. Every fiber then bubbles its children's flags and lanes into `subtreeFlags` and `childLanes`, which is how the [[09 Commit Phase - Mutation, Layout, Passive Effects|commit phase]] knows which subtrees to skip.
+
+### Key takeaways
+
+- **`createInstance`**: creates the node using the host context stack (for SVG namespaces) and stores fiber and props on it for the event system.
+- **`appendAllChildren`**: descends through component fibers to the nearest host descendants, skipping portals and singletons, to assemble the tree off-document.
+- **`finalizeInitialChildren`**: calls `setInitialProperties` after children are appended, and returns `true` for `autoFocus` or `img` to request a commit-time `commitMount`.
+- **`HostRoot` and `Snapshot`**: on the first client render, the root is flagged so `clearContainer` wipes any placeholder content before insertion.
+- **`markUpdate`**: the whole render-phase update logic for a DOM element is an identity check plus a flag, since PR #26583 removed `prepareUpdate`.
+- **`commitUpdate` → `updateProperties`**: diffs and writes props in one commit-time pass, so `Update` does not mean the DOM changed.
+- **`bubbleProperties`**: replaces the old effect list with per-fiber `subtreeFlags`, and bubbles only `StaticMask` flags when the children were bailed out.
+
 ← [[07 beginWork and Reconciliation|beginWork & Reconciliation]] · [[00 React Internals Index|Index]] · [[09 Commit Phase - Mutation, Layout, Passive Effects|Commit Phase]] →
 
 [^cuow]: `completeUnitOfWork` — [packages/react-reconciler/src/ReactFiberWorkLoop.js#L3368-L3431](https://github.com/facebook/react/blob/v19.3.1/packages/react-reconciler/src/ReactFiberWorkLoop.js#L3368-L3431)

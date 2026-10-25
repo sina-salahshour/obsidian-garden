@@ -2,7 +2,7 @@
 tags: [react, react-internals, work-loop, render-phase]
 aliases: [Work Loop]
 react-version: 19.3.1
-created: 2026-10-24T19:45:27.129Z
+created: 2026-10-25T11:54:02.260Z
 ---
 
 # The Work Loop - Render Phase
@@ -253,6 +253,22 @@ At this point the WIP tree is complete. It has DOM nodes for new host fibers, `f
 ## With the React Compiler
 
 The work loop is **unchanged**. The compiler rewrites your component bodies and never touches `react-reconciler` ([[14 React Compiler - How It Works|React Compiler]]). What changes is *how many fibers the loop actually processes*. Compiled components return cached JSX elements when their inputs haven't changed. As described on page 07, `beginWork` then sees `oldProps === newProps` for the children and bails out of whole subtrees, so in step "Fibers visited" above, the subtree under an updated component often shrinks to just the parts whose inputs really changed. Fewer `performUnitOfWork` calls means less render time and fewer yields. See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]].
+
+## Summary
+
+The render phase is a `while` loop over one global pointer, `workInProgress`. `performWorkOnRoot` decides whether to time-slice, `prepareFreshStack` clones the HostRoot into a work-in-progress fiber, and `performUnitOfWork` walks the tree depth-first: `beginWork` going down, `completeWork` coming back up. Because the whole "stack" is one variable and nothing touches the screen, React can yield, resume, or discard a half-built tree. Render can run several times and never commit, so it must be pure. Next: [[07 beginWork and Reconciliation|beginWork]].
+
+### Key takeaways
+
+- **`shouldTimeSlice`**: `DefaultLane` is blocking, so the initial mount runs in `renderRootSync`; only Transition, Retry, Idle and Offscreen lanes yield.
+- **Exit handling**: `performWorkOnRoot` handles yields, re-renders synchronously if a concurrent render saw a store change (tearing), retries errors once, or calls `finishConcurrentRender`.
+- **`workLoopSync` vs `workLoopConcurrentByScheduler`**: the concurrent loop checks `shouldYield()` between fibers, never inside a component.
+- **`prepareFreshStack`**: resets render state, creates the root WIP and drains interleaved updates onto fibers.
+- **Interruption**: when the root or lanes change, the old WIP is discarded; its updates are still in the queues.
+- **`performUnitOfWork`**: `current === null` is the mount/update switch, and `memoizedProps = pendingProps` sets up the next bailout check.
+- **`completeUnitOfWork`**: completes a fiber, then moves to its sibling or parent, so parents complete after their children.
+- **Updates skip work**: `childLanes` limits a deep `setState` to the path to the updated fiber plus its subtree.
+- **Suspension**: a concurrent render can wait and replay one fiber; a sync render unwinds to the nearest Suspense boundary.
 
 ← [[05 The Fiber Data Structure|Fiber]] · [[00 React Internals Index|Index]] · [[07 beginWork and Reconciliation|beginWork & Reconciliation]] →
 

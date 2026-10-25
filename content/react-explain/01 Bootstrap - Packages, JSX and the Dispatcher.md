@@ -2,7 +2,7 @@
 tags: [react, react-internals, bootstrap, jsx, dispatcher]
 aliases: [Bootstrap]
 react-version: 19.3.1
-created: 2026-10-24T19:54:45.784Z
+created: 2026-10-25T11:51:25.990Z
 ---
 
 # Bootstrap - Packages, JSX and the Dispatcher
@@ -229,6 +229,22 @@ function Greeting(props) {
 ```
 
 In React 19, `react/compiler-runtime` re-exports `useMemoCache` as `c`.[^compilerruntime] `useMemoCache` in `react` is a stub that forwards to the dispatcher like every other hook.[^usememocachestub] So `_c(n)` runs through the **same** `ReactSharedInternals.H` path described above and ends in the reconciler's `useMemoCache`, which keeps the cache array on the fiber's update queue.[^usememocacheimpl] React itself exposes the runtime as `__COMPILER_RUNTIME`.[^compilerexport] The standalone `react-compiler-runtime` npm package re-exports `React.__COMPILER_RUNTIME.c` when present and otherwise polyfills it with a `useMemo` of a sentinel-filled array, for React 17/18.[^polyfill] How the compiler decides what goes into those slots is covered in [[14 React Compiler - How It Works|React Compiler]], and the runtime effect in [[15 Rendering With vs Without the Compiler|With vs Without Compiler]].
+
+## Summary
+
+The code you import is not the code that does the work. `react` builds throwaway element objects and owns one shared switchboard, `ReactSharedInternals`. `react-dom` carries a private copy of the reconciler, compiled against the DOM host config, and plugs its own dispatcher into that switchboard right before calling your component. So a hook is a forwarding stub whose behaviour depends on what the renderer put in `H`. Nothing has rendered yet: [[02 createRoot - FiberRoot and HostRoot|createRoot]] builds the root objects next.
+
+### Key takeaways
+
+- **Package split**: `react` knows nothing about fibers or the DOM, so one component model runs under many renderers.
+- **`jsxProd`**: `key` arrives as a separate argument, `ref` stays in props, and the compiler-created object is reused as `props` when no `key` is spread in.
+- **React elements**: immutable, recreated every render, tagged with a `$$typeof` Symbol JSON cannot contain; fibers, not elements, have identity.
+- **`ReactSharedInternals`**: the one mutable object both sides share, with slots such as `H` (hooks dispatcher) and `T` (current transition).
+- **Hook stubs**: `useState` from `react` reads `ReactSharedInternals.H` and forwards the call.
+- **`renderWithHooks`**: installs `HooksDispatcherOnMount` or `HooksDispatcherOnUpdate` before your component runs, then `H` is reset to `ContextOnlyDispatcher`.
+- **"Invalid hook call"**: a hook outside render, mismatched versions, or two copies of React whose switchboards never meet.
+- **Host config**: swapped in at build time, so DOM operations are direct function calls, not runtime dispatch.
+- **React Compiler**: `_c(n)` is `useMemoCache` and goes through the same `H` path.
 
 ← [[00 React Internals Index|Prev]] · [[00 React Internals Index|Index]] · [[02 createRoot - FiberRoot and HostRoot|Next]] →
 

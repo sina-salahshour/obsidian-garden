@@ -335,6 +335,21 @@ Two consequences worth knowing:
 
 Full comparison: [[15 Rendering With vs Without the Compiler|With vs Without Compiler]]. How the cache is built: [[14 React Compiler - How It Works|React Compiler]].
 
+## Summary
+
+For each fiber the work loop visits, `beginWork` either bails out or renders and hands the result to the child reconciler. The gate is a reference check on the props object plus pending lanes and context, and `childLanes` decides whether a clean fiber can skip its whole subtree. The reconciler matches new elements to current fibers by key and type, reusing fibers to keep state and DOM, and records `Placement` and `ChildDeletion` for the commit. Keep this model: a re-render cascades through the subtree because every JSX call makes a new props object, unless the element itself is reused, which is what React Compiler arranges. Next, [[08 completeWork - Building DOM Nodes|completeWork]] builds the DOM on the way back up.
+
+### Key takeaways
+
+- **`oldProps !== newProps`**: the gate compares props by reference, not shallowly, alongside `checkScheduledUpdateOrContext`.
+- **`didReceiveUpdate`**: a module-level flag, so a scheduled component can run and still bail out via `bailoutHooks` if its state did not change.
+- **`bailoutOnAlreadyFinishedWork`**: returns `null` to share the committed subtree, or clones children with their old props so the bailout cascades.
+- **`updateSimpleMemoComponent`**: `memo` swaps in `shallowEqual`, then reuses the old props object; fresh objects and callbacks defeat it.
+- **`mountChildFibers`**: tracking is off, so on first render only the HostRoot's child gets `Placement` and the DOM is inserted once.
+- **`reconcileSingleElement`**: same key plus same type means same fiber and preserved state; a type change rebuilds the subtree.
+- **`lastPlacedIndex`**: the forward-only list diff favours appends; moving the last item to the front is its worst case, and index keys are a correctness bug.
+- **Same element object**: reused elements keep `element.props` identical, making the cheapest bailout the default.
+
 ← [[06 The Work Loop - Render Phase|Work Loop]] · [[00 React Internals Index|Index]] · [[08 completeWork - Building DOM Nodes|completeWork]] →
 
 [^bw-gate]: `beginWork` props/lanes gate — [packages/react-reconciler/src/ReactFiberBeginWork.js#L4250-L4320](https://github.com/facebook/react/blob/v19.3.1/packages/react-reconciler/src/ReactFiberBeginWork.js#L4250-L4320)

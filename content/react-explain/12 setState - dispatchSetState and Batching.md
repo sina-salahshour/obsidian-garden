@@ -197,6 +197,21 @@ function handleClick() {
 
 Unchanged. `dispatchSetState`, lanes, queues and root scheduling are runtime reconciler code, and the compiler only transforms component and hook bodies. The compiler does affect *what happens after* the render this page schedules. With memoized JSX and props, more children take the early `oldProps === newProps` bailout, so a `setState` re-renders less of the subtree. Setters are already stable, so the compiler treats them as non-reactive (`isStableType`/`isSetStateType`) and doesn't put them in cache dependency checks.[^stable] See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]].
 
+## Summary
+
+Between your handler calling `setCount` and the render starting, `dispatchSetState` picks a lane, may compute the next state eagerly and skip scheduling, and otherwise buffers the update, marks lanes up to the root, and asks for the root to be scheduled. Scheduling is deduplicated to one microtask per tick and one callback per root per priority, so batching is a side effect of the design rather than a feature. Keep this model: setState is not async, it is deferred and batched, and your closure's `count` is from the render that created it. The consumer side is in [[11 Hooks on Update|Hooks on Update]].
+
+### Key takeaways
+
+- **`requestUpdateLane`**: reads the transition on `ReactSharedInternals.T`, else the event priority, where `DiscreteEventPriority` is `SyncLane`.
+- **Eager bailout**: applies only when both twins have `NoLanes`; it still enqueues the update, and later same-value calls bail out late, after your component runs.
+- **`concurrentQueues`**: updates go into a flat buffer, not `queue.pending`, so a yielded concurrent render never sees state change mid-render.
+- **`markUpdateLaneFromFiberToRoot`**: ORs the lane into every ancestor's `childLanes`, letting `beginWork` skip clean subtrees.
+- **`ensureRootIsScheduled`**: queues `processRootScheduleInMicrotask` once; `SyncLane` work renders inside the microtask, other lanes get a Scheduler task.
+- **Automatic batching**: three dedup points batch updates from timeouts, promises and native listeners too, and different lanes still mean different renders.
+- **`flushSync`**: forces `SyncLane` and renders and commits before returning; a de-optimisation unless you need the DOM now.
+- **`startTransition`**: only `setState` calls made synchronously inside `fn` see the transition, so wrap updates after an `await` again.
+
 ---
 ← [[11 Hooks on Update|Prev]] · [[00 React Internals Index|Index]] · [[13 The Event System|Next]] →
 

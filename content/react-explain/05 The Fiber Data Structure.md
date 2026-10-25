@@ -2,7 +2,7 @@
 tags: [react, react-internals, fiber, data-structures]
 aliases: [Fiber]
 react-version: 19.3.1
-created: 2026-10-24T19:54:15.798Z
+created: 2026-10-25T11:52:25.508Z
 ---
 
 # The Fiber Data Structure
@@ -251,6 +251,22 @@ The fiber structure is identical. The compiler changes what goes *into* fibers:
 
 - Compiled components store the `useMemoCache` array on `fiber.updateQueue.memoCache` (see [[14 React Compiler - How It Works|React Compiler]]). That is one extra array per compiled component, and it is preserved across the `current` ↔ WIP clone because `updateQueue` is shared.
 - Because compiled code returns the *same element objects* when inputs haven't changed, the child fiber's `pendingProps === memoizedProps` holds, and beginWork bails out at that fiber without calling the component. That reference-equality check on fiber props is where the compiler's performance win actually shows up. See [[15 Rendering With vs Without the Compiler|With vs Without Compiler]].
+
+## Summary
+
+Elements are throwaway descriptions; the fiber is what React keeps. One mutable fiber exists per mounted component, host element or text node: a unit of work and a tree node in one. `child`, `sibling` and `return` pointers let a loop walk the tree and stop at any node instead of recursing. Each fiber has an `alternate`, and the `current` and `workInProgress` trees recycle each other's objects, so a commit is one pointer swap. Next: [[06 The Work Loop - Render Phase|the work loop]].
+
+### Key takeaways
+
+- **Elements vs fibers**: elements are recreated every render; fibers carry identity, state and scheduling while mounted.
+- **`tag`, `type`, `stateNode`**: the kind of fiber, what it renders, and its instance (`null` for function components).
+- **`child` / `sibling` / `return`**: linked children plus a parent pointer, so the loop can pause, abort and resume with no call stack.
+- **`pendingProps` vs `memoizedProps`**: reference-equal props, no pending lanes and unchanged context let beginWork bail out.
+- **`memoizedState` and `updateQueue`**: tag-dependent; the hook list for function components, `{element, isDehydrated, cache}` for the HostRoot.
+- **`flags` and `subtreeFlags`**: side effects for commit, bubbled up so commit skips clean subtrees.
+- **`lanes` and `childLanes`**: pending work on the fiber and below it, so beginWork skips whole subtrees in O(1).
+- **`createWorkInProgress`**: lazily allocates the alternate, then reuses it, sharing data with `current` until the render overwrites it.
+- **Two objects per instance**: which fiber is current flips each commit, so never assume you hold the current one.
 
 ← [[04 Lanes and the Scheduler|Prev]] · [[00 React Internals Index|Index]] · [[06 The Work Loop - Render Phase|Next]] →
 

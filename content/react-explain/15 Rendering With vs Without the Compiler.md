@@ -2,7 +2,7 @@
 tags: [react, react-internals, react-compiler, reconciliation]
 aliases: [With vs Without Compiler]
 react-version: 19.3.1
-created: 2026-10-24T19:39:38.864Z
+created: 2026-10-25T11:53:40.428Z
 ---
 
 # Rendering With vs Without the Compiler
@@ -228,7 +228,23 @@ I checked each of these against real 1.0.0 output (`examples/Gotchas.jsx` → `o
 
 The scheduler, lanes, the work loop, `beginWork`'s logic, child reconciliation, `completeWork`, commit, and effect flushing run the **same code**. Even the cache is just another hook (`useMemoCache`) on the fiber. With the compiler, the existing bailout paths simply fire far more often, because compiled components produce stable element identities.
 
+## Summary
+
+The reconciler has always had a cheap bailout: if a fiber's props object is the same reference as last time and it has no pending work, `beginWork` skips it and possibly its subtree. Uncompiled code rarely hits it below a re-rendering parent, because every `jsx()` call allocates a new props object. Compiled components return cached elements, so `oldProps === newProps` holds and unchanged subtrees are never visited. The state owner still renders and the real DOM writes are the same; the win is skipped renders and skipped prop diffing. This closes the pair begun in [[14 React Compiler - How It Works|React Compiler]].
+
+### Key takeaways
+
+- **The `beginWork` bailout**: same props reference (not a shallow compare) and no pending work; if `childLanes` is clear too, the subtree is skipped.
+- **`useFiber(current, element.props)`**: the element's props become `memoizedProps`, so the same element passes the check automatically.
+- **First render**: `current === null` everywhere, so both modes do the same work plus filling the cache.
+- **Without the compiler**: every component below the state owner renders, and every host fiber there is flagged `Update` and diffed.
+- **With the compiler**: `ExpensiveChild` and `StaticChild` get cached elements, bail out, and their subtrees go unvisited.
+- **Second line of defence**: a compiled child that re-renders reuses its own cache; close to `React.memo`, not identical.
+- **Effect deps**: render-created objects are memoized on their real inputs, so effects fire only when those change.
+- **Gotchas**: `Date.now()` in render, mutable globals and interior-mutable libraries freeze; try `"use no memo"` first.
+
 ---
+
 ← [[14 React Compiler - How It Works|Prev]] · [[00 React Internals Index|Index]] · [[20 Walkthrough - First Render End to End|Next]] →
 
 [^bw-bailout]: `beginWork` props/lane bailout — [packages/react-reconciler/src/ReactFiberBeginWork.js#L4250-L4294](https://github.com/facebook/react/blob/v19.3.1/packages/react-reconciler/src/ReactFiberBeginWork.js#L4250-L4294)
