@@ -97,6 +97,18 @@ describe("embeds", () => {
     expect(html).toContain('<img src="/attachments/my%20pic.png" alt="" width="300"/>');
   });
 
+  it("resolves embeds to their vault-relative attachment path", async () => {
+    const { html } = await renderNote(
+      "react/01 Intro.md",
+      "![[diagram.png|300]]\n\n![[clip.mp4]]\n\n![[../shared/doc.pdf]]",
+      others,
+      ["react/img/diagram.png", "other/diagram.png", "react/clip.mp4", "shared/doc.pdf"],
+    );
+    expect(html).toContain('<img src="/attachments/react/img/diagram.png" alt="" width="300"/>');
+    expect(html).toContain('src="/attachments/react/clip.mp4"');
+    expect(html).toContain('href="/attachments/shared/doc.pdf"');
+  });
+
   it("embeds notes as a link with the target title", async () => {
     const { html } = await render("![[Root Note]]");
     expect(html).toContain('<a href="/posts/root-note" data-embed="">Root Note Title</a>');
@@ -256,5 +268,32 @@ describe("meta", () => {
     const pub = await renderNote("x.md", "Public sentence.", []);
     expect(pub.body).toBeUndefined();
     expect(pub.searchText).toBe("Public sentence.");
+  });
+});
+
+describe("covers", () => {
+  const covers = ["react-explain/cover.svg", "react-concepts/cover.svg"];
+  const courses = [
+    { path: "react-explain/react-explain.md", source: "---\ncover: cover.svg\n---\nA" },
+    { path: "react-concepts/react-concepts.md", source: '---\ncover: "[[cover.svg]]"\n---\nB' },
+  ];
+
+  it("gives every course its own cover.svg", async () => {
+    for (const [i, course] of courses.entries()) {
+      const { meta } = await renderNote(course.path, course.source, courses, covers);
+      expect(meta.cover).toBe(`/attachments/${covers[i]}`);
+    }
+  });
+
+  it("resolves private notes from their logical folder and nulls unsynced covers", async () => {
+    const { meta } = await renderNote(
+      "_private/react-concepts/Secret.md",
+      "---\nvisibility: private\ncover: cover.svg\n---\nS",
+      courses,
+      covers,
+    );
+    expect(meta.cover).toBe("/attachments/react-concepts/cover.svg");
+    const missing = await renderNote("react/x.md", "---\ncover: nope.svg\n---\nX", [], covers);
+    expect(missing.meta.cover).toBeNull();
   });
 });

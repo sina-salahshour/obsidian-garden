@@ -6,8 +6,7 @@
 //
 // Reading time: prose words at 230 wpm plus fenced-code words at half weight (code is skimmed, not
 // read word by word); mermaid sources are not counted. wordCount counts prose only. Min 1 minute.
-import { existsSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { statSync } from "node:fs";
 import { toString as hastToString } from "hast-util-to-string";
 import type { Element, Root as HastRoot } from "hast";
 import type { Blockquote, Nodes, Paragraph, Root, RootContent } from "mdast";
@@ -15,7 +14,15 @@ import { toString as mdastToString } from "mdast-util-to-string";
 import { visit } from "unist-util-visit";
 import { parse as parseYaml } from "yaml";
 import type { Heading, PostMeta } from "../types.ts";
-import { baseOf, orderFromName, stripNoteExt, stripOrderPrefix } from "../paths.ts";
+import { attachmentHref, resolveAttachment } from "../attachments.ts";
+import {
+  baseOf,
+  dirOf,
+  orderFromName,
+  stripNoteExt,
+  stripOrderPrefix,
+  toLogicalPath,
+} from "../paths.ts";
 import { slugifyPath } from "../slug.ts";
 import type { Catalog } from "./catalog.ts";
 import { toStringList } from "./catalog.ts";
@@ -26,8 +33,8 @@ import type { EsProgram, FileLike } from "./unified-types.ts";
 export interface MetaOptions {
   catalog: () => Catalog;
   contentPath: (file: FileLike) => string | null;
-  /** absolute path of public/attachments, used to null out covers that are not synced (yet) */
-  attachmentsDir: string;
+  /** vault-relative paths in public/attachments, used to resolve covers (unsynced ones become null) */
+  attachments: () => ReadonlySet<string>;
 }
 
 interface MetaDraft extends Omit<PostMeta, "headings"> {
@@ -103,34 +110,25 @@ export function frontmatterOf(tree: Root): Record<string, unknown> {
 
 function coverOf(
   fm: Record<string, unknown>,
-  attachmentsDir: string,
+  attachments: ReadonlySet<string>,
+  noteDir: string,
   file: FileLike,
 ): string | null {
   for (const key of ["cover", "image", "banner"]) {
     const raw = fm[key];
     if (typeof raw !== "string" || !raw.trim()) continue;
-    let value = raw.trim();
+    const value = raw.trim();
     if (/^https?:\/\//i.test(value) || value.startsWith("//")) return value;
-    const wiki = /^!?\[\[([^\]|#]+)/.exec(value);
-    if (wiki) value = wiki[1]!;
-    const name = baseOf(decodeURIComponentSafe(value.trim()));
-    if (!existsSync(join(attachmentsDir, name))) {
+    const { path } = resolveAttachment(value, noteDir, attachments);
+    if (!path) {
       file.message(
-        `cover "${name}" not found in public/attachments (run the sync); cover set to null`,
+        `cover "${value}" not found in public/attachments (run the sync); cover set to null`,
       );
       return null;
     }
-    return `/attachments/${encodeURIComponent(name)}`;
+    return attachmentHref(path);
   }
   return null;
-}
-
-function decodeURIComponentSafe(v: string): string {
-  try {
-    return decodeURIComponent(v);
-  } catch {
-    return v;
-  }
 }
 
 /** Plain text used by the server-only search index: prose, headings, callouts, tables; no fenced code. */
@@ -175,7 +173,9 @@ export function remarkMeta(options: MetaOptions) {
     const self = contentPath !== null ? (catalog?.byContentPath.get(contentPath) ?? null) : null;
     const fm = frontmatterOf(tree);
     const obsidian = (file.data.obsidian as ObsidianData | undefined) ?? { links: [], tags: [] };
-    const logical = self?.logical ?? contentPath ?? baseOf(file.path ?? "note.md");
+    const logical =
+      self?.logical ??
+      (contentPath !== null ? toLogicalPath(contentPath) : baseOf(file.path ?? "note.md"));
     const name = stripNoteExt(baseOf(logical));
 
     // Title + first-H1 removal
@@ -260,7 +260,7 @@ export function remarkMeta(options: MetaOptions) {
       visibility: isPrivate ? "private" : "public",
       isFolderNote: folderDir !== null,
       source: stripNoteExt(logical),
-      cover: coverOf(fm, options.attachmentsDir, file),
+      cover: coverOf(fm, options.attachments(), dirOf(logical), file),
       wordCount: prose,
       readingMinutes,
       headings: [],

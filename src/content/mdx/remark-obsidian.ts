@@ -1,7 +1,7 @@
 // Obsidian-flavoured markdown -> mdast nodes with the hast shapes the UI styles (see README of the
 // content contract in the worker brief):
 //   [[Note|text]]   -> <a href="/posts/<slug>#id" data-wikilink="">text</a>   (unresolved/private: span.wikilink-unresolved)
-//   ![[img.png|300]]-> <img src="/attachments/img.png" alt="" width="300">
+//   ![[img.png|300]]-> <img src="/attachments/<vault-relative path>/img.png" alt="" width="300">
 //   ![[Note]]       -> <a href="/posts/<slug>" data-embed="">Title</a>
 //   > [!type]± Title-> <aside data-callout data-callout-fold?><div.callout-title><span.callout-title-text/></div><div.callout-content/></aside>
 //   ```mermaid      -> <figure data-mermaid="src" class="mermaid"><pre><code>src</code></pre></figure>
@@ -18,7 +18,8 @@ import type {
   Text,
 } from "mdast";
 import { visit, SKIP } from "unist-util-visit";
-import { baseOf, stripNoteExt } from "../paths.ts";
+import { attachmentHref, resolveAttachment } from "../attachments.ts";
+import { baseOf, dirOf, stripNoteExt, toLogicalPath } from "../paths.ts";
 import type { Catalog, CatalogEntry } from "./catalog.ts";
 import type { FileLike } from "./unified-types.ts";
 
@@ -34,6 +35,8 @@ export interface RemarkObsidianOptions {
   catalog: () => Catalog;
   /** maps a vfile to its content-relative path ("react-explain/07 x.md"), or null when outside content/ */
   contentPath: (file: FileLike) => string | null;
+  /** vault-relative attachment paths (the synced public/attachments) */
+  attachments: () => ReadonlySet<string>;
 }
 
 const IMAGE_EXT = new Set([
@@ -57,6 +60,7 @@ function ext(name: string): string {
   return i <= 0 ? "" : b.slice(i).toLowerCase();
 }
 
+/** Fallback URL for an attachment that did not resolve (not synced): its bare file name. */
 export function attachmentUrl(name: string): string {
   return `/attachments/${encodeURIComponent(baseOf(name.trim()))}`;
 }
@@ -134,6 +138,9 @@ interface Ctx {
   catalog: Catalog | null;
   self: CatalogEntry | null;
   data: ObsidianData;
+  attachments: ReadonlySet<string>;
+  /** the note's logical (vault-relative) directory, for attachment resolution */
+  noteDir: string;
 }
 
 function headingId(heading: string): string {
@@ -159,7 +166,8 @@ function wikilinkNode(raw: string, embed: boolean, ctx: Ctx): PhrasingContent[] 
 
   // Attachments
   if (target && extension && extension !== ".md" && extension !== ".mdx") {
-    const url = attachmentUrl(target);
+    const resolved = resolveAttachment(target, ctx.noteDir, ctx.attachments).path;
+    const url = resolved ? attachmentHref(resolved) : attachmentUrl(target);
     if (embed && IMAGE_EXT.has(extension)) {
       const props: Record<string, unknown> = { src: url, alt: "" };
       const size = alias && /^(\d+)(?:x(\d+))?$/.exec(alias);
@@ -446,7 +454,14 @@ export default function remarkObsidian(options: RemarkObsidianOptions) {
     const contentPath = options.contentPath(file);
     const catalog = contentPath !== null ? options.catalog() : null;
     const self = contentPath !== null ? (catalog?.byContentPath.get(contentPath) ?? null) : null;
-    const ctx: Ctx = { catalog, self, data: { links: [], tags: [] } };
+    const logical = self?.logical ?? (contentPath !== null ? toLogicalPath(contentPath) : "");
+    const ctx: Ctx = {
+      catalog,
+      self,
+      data: { links: [], tags: [] },
+      attachments: options.attachments(),
+      noteDir: dirOf(logical),
+    };
     file.data.obsidian = ctx.data;
 
     stripBlockComments(tree);

@@ -40,7 +40,7 @@ export interface PostMeta {
   isFolderNote: boolean;
   /** original vault-relative path without extension, e.g. "react-explain/07 beginWork and Reconciliation" */
   source: string;
-  /** "/attachments/<file>" or an absolute URL; null when absent */
+  /** "/attachments/<vault-relative path>" or an absolute URL; null when absent */
   cover: string | null;
   wordCount: number;
   readingMinutes: number;
@@ -105,7 +105,7 @@ export interface FolderInfo {
   title: string;
   /** folder note description (frontmatter or first paragraph), else "" */
   description: string;
-  /** folder note's cover ("/attachments/<file>"), else null */
+  /** folder note's cover ("/attachments/<vault-relative path>"), else null */
   cover: string | null;
   /** slug of the folder note (render its body as the course intro); null when the folder has none */
   indexSlug: string | null;

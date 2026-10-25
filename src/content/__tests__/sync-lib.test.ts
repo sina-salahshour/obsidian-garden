@@ -4,6 +4,8 @@ import {
   contentPathFor,
   extractAttachmentRefs,
   frontmatterAttachment,
+  planAttachments,
+  type NoteState,
   injectCreated,
   isSkippedDir,
   prepareNote,
@@ -62,13 +64,51 @@ describe("attachments", () => {
     const refs = extractAttachmentRefs(
       "![[img.png]] ![[sub/pic one.jpg|300]] [[doc.pdf]] ![alt](<my%20file.svg>) ![x](https://x.com/a.png) `![[code.png]]` [[Note]]",
     );
-    expect(refs.sort()).toEqual(["doc.pdf", "img.png", "my file.svg", "pic one.jpg"]);
+    expect(refs.sort()).toEqual(["doc.pdf", "img.png", "my file.svg", "sub/pic one.jpg"]);
   });
 
   it("reads cover/image/banner", () => {
     expect(frontmatterAttachment({ cover: "cover.svg" })).toBe("cover.svg");
-    expect(frontmatterAttachment({ image: "[[art/hero.png]]" })).toBe("hero.png");
+    expect(frontmatterAttachment({ image: "[[art/hero.png]]" })).toBe("art/hero.png");
     expect(frontmatterAttachment({ banner: "https://x.com/a.png" })).toBeNull();
+  });
+
+  it("plans attachments at their vault-relative paths", () => {
+    const notes = [
+      { path: "react-explain/react-explain.md", data: { cover: "cover.svg" }, body: "" },
+      { path: "react-concepts/react-concepts.md", data: { cover: "cover.svg" }, body: "" },
+      { path: "react-concepts/01 x.md", data: {}, body: "![[cover.svg]] ![[dup.png]]" },
+      { path: "diary/Secret.md", data: {}, body: "![[secret.png]]" },
+      { path: "draft/Draft.md", data: {}, body: "![[draft.png]]" },
+    ];
+    const states = new Map<string, NoteState>([
+      ["react-explain/react-explain.md", "public"],
+      ["react-concepts/react-concepts.md", "public"],
+      ["react-concepts/01 x.md", "public"],
+      ["diary/Secret.md", "private"],
+      ["draft/Draft.md", "excluded"],
+    ]);
+    const plan = planAttachments(
+      notes,
+      states,
+      new Set([
+        "react-explain/cover.svg",
+        "react-concepts/cover.svg",
+        "a/dup.png",
+        "b/dup.png",
+        "diary/secret.png",
+        "draft/draft.png",
+      ]),
+    );
+    expect(plan.publish).toEqual([
+      "a/dup.png",
+      "react-concepts/cover.svg",
+      "react-explain/cover.svg",
+    ]);
+    expect(plan.privateOnly).toEqual(["diary/secret.png"]);
+    expect(plan.warnings).toEqual([
+      'react-concepts/01 x.md: attachment "dup.png" is ambiguous, using a/dup.png (also b/dup.png)',
+    ]);
   });
 
   it("skips dot dirs and templates", () => {

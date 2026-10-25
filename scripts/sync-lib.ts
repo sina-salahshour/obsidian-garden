@@ -7,6 +7,7 @@ import {
   folderNoteOf,
   PRIVATE_DIR,
 } from "../src/content/paths.ts";
+import { cleanAttachmentRef, resolveAttachment } from "../src/content/attachments.ts";
 
 export { PRIVATE_DIR };
 
@@ -183,43 +184,36 @@ function withoutCode(body: string): string {
   return body.replace(/^(\s*)(`{3,}|~{3,})[\s\S]*?^\s*\2[`~]*\s*$/gm, "").replace(/`[^`\n]*`/g, "");
 }
 
-function safeDecode(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
-/** Attachment targets referenced by a note: `![[x.png]]`, `![[x.png|300]]`, `[[doc.pdf]]`, `![](x.png)`. */
+/**
+ * Attachment targets referenced by a note: `![[x.png]]`, `![[x.png|300]]`, `[[doc.pdf]]`, `![](x.png)`.
+ * Returned as written (cleaned, not resolved): resolve each with `resolveAttachment`.
+ */
 export function extractAttachmentRefs(body: string): string[] {
   const text = withoutCode(body);
   const refs = new Set<string>();
   for (const m of text.matchAll(/!?\[\[([^\]\n]+?)\]\]/g)) {
-    const target = m[1]!.split("|")[0]!.split("#")[0]!.trim();
-    if (target && isAttachmentFile(target)) refs.add(basename(target));
+    const target = cleanAttachmentRef(m[1]!);
+    if (target && isAttachmentFile(target)) refs.add(target);
   }
   for (const m of text.matchAll(/!\[[^\]\n]*\]\(\s*(<[^>\n]+>|[^)\s]+)(?:\s+["'(][^)]*)?\)/g)) {
     let target = m[1]!.trim();
     if (target.startsWith("<")) target = target.slice(1, -1);
     if (/^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith("//")) continue;
-    target = safeDecode(target.split(/[?#]/)[0]!);
-    if (target && isAttachmentFile(target)) refs.add(basename(target));
+    target = cleanAttachmentRef(target.split(/[?#]/)[0]!);
+    if (target && isAttachmentFile(target)) refs.add(target);
   }
   return [...refs];
 }
 
-/** Attachment referenced from frontmatter cover/image/banner (local only). */
+/** Attachment referenced from frontmatter cover/image/banner (local only), as written (unresolved). */
 export function frontmatterAttachment(data: Record<string, unknown>): string | null {
   for (const key of ["cover", "image", "banner"]) {
     const value = data[key];
     if (typeof value !== "string" || !value.trim()) continue;
     let target = value.trim();
     if (/^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith("//")) return null;
-    const wiki = /^!?\[\[([^\]|#]+)/.exec(target);
-    if (wiki) target = wiki[1]!;
-    target = safeDecode(target.trim());
-    return isAttachmentFile(target) ? basename(target) : null;
+    target = cleanAttachmentRef(target);
+    return isAttachmentFile(target) ? target : null;
   }
   return null;
 }
@@ -341,6 +335,53 @@ export function classifyNotes(notes: readonly VaultNote[], markers: DirMarkers):
 export function contentPathFor(path: string, state: NoteState): string | null {
   if (state === "excluded") return null;
   return state === "private" ? `${PRIVATE_DIR}/${path}` : path;
+}
+
+export interface AttachmentPlan {
+  /** vault-relative attachment paths to publish at public/attachments/<path> */
+  publish: string[];
+  /** resolved attachments referenced only by private notes (not published) */
+  privateOnly: string[];
+  warnings: string[];
+}
+
+/**
+ * Resolves every attachment ref of the published notes (body embeds + frontmatter cover) against the
+ * vault's attachments. Excluded notes contribute nothing; private-only attachments are not published.
+ */
+export function planAttachments(
+  notes: readonly VaultNote[],
+  states: ReadonlyMap<string, NoteState>,
+  attachments: ReadonlySet<string>,
+): AttachmentPlan {
+  const publicRefs = new Set<string>();
+  const privateRefs = new Set<string>();
+  const warnings: string[] = [];
+  for (const note of notes) {
+    const state = states.get(note.path) ?? "excluded";
+    if (state === "excluded") continue;
+    const refs = extractAttachmentRefs(note.body);
+    const cover = frontmatterAttachment(note.data);
+    if (cover && !refs.includes(cover)) refs.push(cover);
+    for (const ref of refs) {
+      const { path, ambiguous } = resolveAttachment(ref, dirOf(note.path), attachments);
+      if (!path) {
+        warnings.push(`attachment not found in vault: ${ref} (in ${note.path})`);
+        continue;
+      }
+      if (ambiguous.length) {
+        warnings.push(
+          `${note.path}: attachment "${ref}" is ambiguous, using ${path} (also ${ambiguous.join(", ")})`,
+        );
+      }
+      (state === "private" ? privateRefs : publicRefs).add(path);
+    }
+  }
+  return {
+    publish: [...publicRefs].sort(),
+    privateOnly: [...privateRefs].filter((p) => !publicRefs.has(p)).sort(),
+    warnings,
+  };
 }
 
 export interface SyncSummary {

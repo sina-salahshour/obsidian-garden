@@ -21,7 +21,10 @@ export async function renderNote(
   path: string,
   source: string,
   others: CatalogSource[] = [],
+  /** vault-relative paths present in public/attachments */
+  attachments: Iterable<string> = [],
 ): Promise<Rendered> {
+  const attachmentSet: ReadonlySet<string> = new Set(attachments);
   const catalog = buildCatalog([{ path, source }, ...others.filter((o) => o.path !== path)]);
   const {
     mdExtensions: _a,
@@ -32,6 +35,7 @@ export async function renderNote(
     contentPath: (file) =>
       file.path?.startsWith(`${ROOT}/`) ? file.path.slice(ROOT.length + 1) : null,
     attachmentsDir: "/virtual/attachments",
+    attachments: () => attachmentSet,
   });
   const compiled = await compile(
     { path: `${ROOT}/${path}`, value: source },

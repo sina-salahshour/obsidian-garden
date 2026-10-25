@@ -1,7 +1,8 @@
 // MDX pipeline for content/**/*.{md,mdx}. Imported by vite.config.ts (runs in Node at build time).
 // .md is parsed as plain markdown (`format: "detect"`), so Obsidian prose with `<` / `{` is safe;
 // .mdx files get full MDX.
-import { relative, resolve, sep } from "node:path";
+import { readdirSync } from "node:fs";
+import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Options } from "@mdx-js/rollup";
 import rehypeShiki from "@shikijs/rehype";
@@ -29,10 +30,44 @@ export function contentPathOf(file: FileLike): string | null {
   return rel.split(sep).join("/");
 }
 
+/** Vault-relative paths of every synced file below `dir` (public/attachments), empty when absent. */
+export function listAttachments(dir: string): Set<string> {
+  const out = new Set<string>();
+  const walk = (abs: string, rel: string) => {
+    let entries;
+    try {
+      entries = readdirSync(abs, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue;
+      const childRel = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(join(abs, entry.name), childRel);
+      else if (entry.isFile()) out.add(childRel);
+    }
+  };
+  walk(dir, "");
+  return out;
+}
+
+/** listAttachments, re-read at most once a second so a running dev server sees fresh syncs. */
+function cachedAttachments(dir: string): () => ReadonlySet<string> {
+  let cache: { at: number; set: Set<string> } | null = null;
+  return () => {
+    const now = Date.now();
+    if (!cache || now - cache.at > 1000) cache = { at: now, set: listAttachments(dir) };
+    return cache.set;
+  };
+}
+
 export interface PipelineContext {
   catalog: () => Catalog;
   contentPath: (file: FileLike) => string | null;
+  /** absolute path of public/attachments (the synced output) */
   attachmentsDir: string;
+  /** vault-relative attachment paths; defaults to a recursive listing of `attachmentsDir` */
+  attachments?: () => ReadonlySet<string>;
 }
 
 const base = {
@@ -46,7 +81,11 @@ export function createMdxOptions(
   ctx: PipelineContext,
   { inner = false }: { inner?: boolean } = {},
 ): Options {
-  const shared = { catalog: ctx.catalog, contentPath: ctx.contentPath };
+  const shared = {
+    catalog: ctx.catalog,
+    contentPath: ctx.contentPath,
+    attachments: ctx.attachments ?? cachedAttachments(ctx.attachmentsDir),
+  };
   const compileBody = inner
     ? undefined
     : async (file: FileLike): Promise<string> => {
@@ -75,7 +114,7 @@ export function createMdxOptions(
       remarkGfm,
       remarkMath,
       [remarkObsidian, shared],
-      [remarkMeta, { ...shared, attachmentsDir: ctx.attachmentsDir }],
+      [remarkMeta, shared],
     ],
     rehypePlugins: [
       rehypeKatex,

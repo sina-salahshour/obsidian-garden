@@ -8,16 +8,14 @@ import { mkdir, readdir, readFile, rm, rmdir, stat, writeFile } from "node:fs/pr
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  basename,
   classifyNotes,
   contentPathFor,
   emptySummary,
-  extractAttachmentRefs,
   formatSummary,
-  frontmatterAttachment,
   isAttachmentFile,
   isNoteFile,
   isSkippedDir,
+  planAttachments,
   prepareNote,
   splitFrontmatter,
   type SyncSummary,
@@ -140,15 +138,6 @@ export async function sync(): Promise<SyncSummary> {
   });
   summary.warnings.push(...warnings);
 
-  // Attachments by basename (Obsidian resolves embeds by file name); shortest path wins on collisions.
-  const byBase = new Map<string, string[]>();
-  for (const a of scan.attachments) {
-    const key = basename(a).toLowerCase();
-    byBase.set(key, [...(byBase.get(key) ?? []), a]);
-  }
-  const publicRefs = new Set<string>();
-  const privateRefs = new Set<string>();
-
   const expected = new Set<string>();
   for (const note of notes) {
     const state = states.get(note.path) ?? "excluded";
@@ -159,10 +148,6 @@ export async function sync(): Promise<SyncSummary> {
     }
     if (state === "private") summary.private.push(note.path);
     expected.add(target);
-    const refs = extractAttachmentRefs(note.body);
-    const cover = frontmatterAttachment(note.data);
-    if (cover) refs.push(cover);
-    for (const r of refs) (state === "private" ? privateRefs : publicRefs).add(r.toLowerCase());
     const out = prepareNote(sources.get(note.path)!, await createdIso(join(vaultDir, note.path)));
     const change = await writeIfChanged(join(contentDir, target), out);
     if (change === "added") summary.added.push(target);
@@ -175,33 +160,20 @@ export async function sync(): Promise<SyncSummary> {
     if (!dryRun) await rm(join(contentDir, file));
   }
 
-  const expectedAttachments = new Set<string>();
-  for (const ref of publicRefs) {
-    const candidates = (byBase.get(ref) ?? []).sort(
-      (a, b) => a.length - b.length || a.localeCompare(b),
-    );
-    if (candidates.length === 0) {
-      summary.warnings.push(`attachment not found in vault: ${ref}`);
-      continue;
-    }
-    if (candidates.length > 1) {
-      summary.warnings.push(
-        `attachment name collision "${ref}": using ${candidates[0]} (also ${candidates.slice(1).join(", ")})`,
-      );
-    }
-    const src = candidates[0]!;
-    const name = basename(src);
-    expectedAttachments.add(name);
+  // Attachments keep their vault-relative path; refs resolve like Obsidian (see resolveAttachment).
+  const plan = planAttachments(notes, states, new Set(scan.attachments));
+  summary.warnings.push(...plan.warnings);
+  const expectedAttachments = new Set(plan.publish);
+  for (const path of plan.publish) {
     const change = await writeIfChanged(
-      join(attachmentsDir, name),
-      await readFile(join(vaultDir, src)),
+      join(attachmentsDir, path),
+      await readFile(join(vaultDir, path)),
     );
-    if (change) summary.attachments[change].push(name);
+    if (change) summary.attachments[change].push(path);
   }
-  const privateOnly = [...privateRefs].filter((r) => !publicRefs.has(r));
-  if (privateOnly.length) {
+  if (plan.privateOnly.length) {
     summary.warnings.push(
-      `${privateOnly.length} attachment(s) used only by private notes not published (public/ is world-readable): ${privateOnly.join(", ")}`,
+      `${plan.privateOnly.length} attachment(s) used only by private notes not published (public/ is world-readable): ${plan.privateOnly.join(", ")}`,
     );
   }
   for (const file of await listFiles(attachmentsDir)) {
