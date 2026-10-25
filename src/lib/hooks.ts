@@ -122,12 +122,12 @@ export function spotlightHandlers() {
 }
 
 /**
- * Card hover: a gentle pull toward the cursor (at most `pull` px each way) plus the hover `lift`,
- * on one soft spring so they never fight, and the spotlight's --mx/--my. Mouse only (a touch
+ * Card hover: a gentle, symmetric pull toward the cursor (at most `pull` px each way) on a soft
+ * spring, and the spotlight's --mx/--my. No constant lift: it would make the pull lopsided. Mouse only (a touch
  * would leave the card displaced) and still under reduced motion. Spread onto a motion element:
  * `<motion.article {...useCardHover()}>`.
  */
-export function useCardHover({ pull = 3, lift = 2 }: { pull?: number; lift?: number } = {}) {
+export function useCardHover({ pull = 3 }: { pull?: number } = {}) {
   const reduce = useReducedMotion();
   const tx = useMotionValue(0);
   const ty = useMotionValue(0);
@@ -144,7 +144,7 @@ export function useCardHover({ pull = 3, lift = 2 }: { pull?: number; lift?: num
       const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
       const ny = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
       tx.set(Math.sin((nx * Math.PI) / 2) * pull);
-      ty.set(Math.sin((ny * Math.PI) / 2) * pull - lift);
+      ty.set(Math.sin((ny * Math.PI) / 2) * pull);
     },
     onPointerLeave() {
       tx.set(0);

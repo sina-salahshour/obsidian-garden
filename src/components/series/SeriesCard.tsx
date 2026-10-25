@@ -24,7 +24,7 @@ export function SeriesCard({
   const teaser = parts?.slice(0, 4) ?? [];
   // The cover carries the card's corners itself (top when stacked, right from md), so the rounded
   // edge holds even when the transformed card fails to clip a composited child.
-  const hover = useCardHover({ lift: 3 });
+  const hover = useCardHover();
   return (
     <motion.article
       {...hover}

@@ -106,7 +106,7 @@ export function PostRow({
   className?: string;
   eyebrow?: React.ReactNode;
 }) {
-  const hover = useCardHover({ pull: 2, lift: 0 });
+  const hover = useCardHover({ pull: 2 });
   return (
     <motion.div
       {...hover}
