@@ -214,6 +214,9 @@ pnpm dev          # or: vp dev   -> http://localhost:3000
 3. Optional: set the environment variable `SITE_URL` (for example `https://garden.example.com`). It is the canonical
    origin used for RSS, the sitemap and canonical links. Without it the build falls back to
    `VERCEL_PROJECT_PRODUCTION_URL`, then to the request origin.
+4. Optional: set `VITE_GTM_ID` to your Google Tag Manager container ID (for example `GTM-XXXXXXX`). GTM is
+   omitted entirely when this variable is unset or empty. Since `VITE_` variables are embedded into client bundles
+   at build time, configure it in Vercel for the environments where you want tracking enabled and redeploy after changes.
 
 ### Other hosts
 
