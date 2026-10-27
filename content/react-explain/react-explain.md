@@ -2,8 +2,9 @@
 title: React Internals
 description: A source-level tour of how React 19 turns your components into pixels, from createRoot and lanes to fibers, hooks, the commit phase and the React Compiler.
 cover: cover.svg
+social-image: social-card.png
 tags: [react, react-internals, course]
-created: 2026-10-25T10:00:58.762Z
+created: 2026-10-27T09:51:45.109Z
 ---
 
 # React Internals

@@ -1,0 +1,23 @@
+{
+  "title": "Obsidian Garden",
+  "description": "Notes, deep dives and explainers, published straight from my Obsidian vault.",
+  "locale": "en",
+  "url": "https://drhexe.garden.ir",
+  "image": "/attachments/_site/social-card.png",
+  "keywords": [],
+  "twitter": null,
+  "blockCrawlers": [],
+  "authors": [
+    {
+      "id": "sina-salahshour",
+      "name": "Sina Salahshour",
+      "aliases": [],
+      "description": "Software developer writing source-level deep dives.",
+      "url": null,
+      "image": null,
+      "sameAs": [],
+      "twitter": null,
+      "jobTitle": null
+    }
+  ]
+}

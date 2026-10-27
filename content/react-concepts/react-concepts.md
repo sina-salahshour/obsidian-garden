@@ -2,8 +2,9 @@
 title: How React Works
 description: A plain-language course on the ideas behind React 19, from UI as a function of state through rendering, reconciliation, fiber, priorities, commit and hooks, built on one small app.
 cover: cover.svg
+social-image: social-card.png
 tags: [react, react-concepts, course]
-created: 2026-10-25T12:06:04.908Z
+created: 2026-10-27T09:51:45.111Z
 ---
 
 # How React Works

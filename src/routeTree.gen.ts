@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GraphRouteImport } from './routes/graph'
 import { Route as LessonsRouteImport } from './routes/lessons'
+import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -33,6 +35,16 @@ const GraphRoute = GraphRouteImport.update({
 const LessonsRoute = LessonsRouteImport.update({
   id: '/lessons',
   path: '/lessons',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
+  id: '/manifest.webmanifest',
+  path: '/manifest.webmanifest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RssDotxmlRoute = RssDotxmlRouteImport.update({
@@ -75,6 +87,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/graph': typeof GraphRoute
   '/lessons': typeof LessonsRoute
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -87,6 +101,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/graph': typeof GraphRoute
   '/lessons': typeof LessonsRoute
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -100,6 +116,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/graph': typeof GraphRoute
   '/lessons': typeof LessonsRoute
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -114,6 +132,8 @@ export interface FileRouteTypes {
     | '/'
     | '/graph'
     | '/lessons'
+    | '/manifest.webmanifest'
+    | '/robots.txt'
     | '/rss.xml'
     | '/search'
     | '/sitemap.xml'
@@ -126,6 +146,8 @@ export interface FileRouteTypes {
     | '/'
     | '/graph'
     | '/lessons'
+    | '/manifest.webmanifest'
+    | '/robots.txt'
     | '/rss.xml'
     | '/search'
     | '/sitemap.xml'
@@ -138,6 +160,8 @@ export interface FileRouteTypes {
     | '/'
     | '/graph'
     | '/lessons'
+    | '/manifest.webmanifest'
+    | '/robots.txt'
     | '/rss.xml'
     | '/search'
     | '/sitemap.xml'
@@ -151,6 +175,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GraphRoute: typeof GraphRoute
   LessonsRoute: typeof LessonsRoute
+  ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   RssDotxmlRoute: typeof RssDotxmlRoute
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -181,6 +207,20 @@ declare module '@tanstack/react-router' {
       path: '/lessons'
       fullPath: '/lessons'
       preLoaderRoute: typeof LessonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manifest.webmanifest': {
+      id: '/manifest.webmanifest'
+      path: '/manifest.webmanifest'
+      fullPath: '/manifest.webmanifest'
+      preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rss.xml': {
@@ -239,6 +279,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GraphRoute: GraphRoute,
   LessonsRoute: LessonsRoute,
+  ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   RssDotxmlRoute: RssDotxmlRoute,
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

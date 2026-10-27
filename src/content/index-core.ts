@@ -170,6 +170,18 @@ export function scorePost(
 
 // ---------------------------------------------------------------------------------------------
 
+type FolderNoteFields = Pick<FolderInfo, "socialImage" | "level" | "authors" | "noindex">;
+
+/** SEO fields a folder takes from its folder note (defaults when it has none). */
+function folderNoteFields(note: PostMeta | null): FolderNoteFields {
+  return {
+    socialImage: note?.socialImage ?? null,
+    level: note?.level ?? null,
+    authors: note?.authors ?? [],
+    noindex: note?.noindex ?? false,
+  };
+}
+
 export interface IndexOptions {
   /** cover href ("/attachments/…") -> sanitised inline SVG, built at build time (posts.server.ts) */
   coverSvgs?: ReadonlyMap<string, string>;
@@ -323,6 +335,7 @@ export function createIndex(
           indexSlug: note?.slug ?? null,
           count: parts.length,
           latest: dates[dates.length - 1]!,
+          ...folderNoteFields(note),
         });
       }
       // folders that only have a folder note (no parts yet)
@@ -338,6 +351,7 @@ export function createIndex(
           indexSlug: note.slug,
           count: 0,
           latest: note.date,
+          ...folderNoteFields(note),
         });
       }
       return out.sort((a, b) => b.latest.localeCompare(a.latest) || a.title.localeCompare(b.title));

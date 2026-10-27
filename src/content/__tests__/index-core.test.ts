@@ -21,6 +21,12 @@ function meta(slug: string, extra: Partial<PostMeta> = {}): PostMeta {
     readingMinutes: 1,
     headings: [],
     links: [],
+    authors: [],
+    socialImage: null,
+    noindex: false,
+    canonical: null,
+    schemaType: null,
+    level: null,
     ...extra,
   };
 }
@@ -133,8 +139,45 @@ describe("series and folders", () => {
         indexSlug: "course",
         count: 3,
         latest: "2024-03-01T00:00:00.000Z",
+        socialImage: null,
+        level: null,
+        authors: [],
+        noindex: false,
       },
     ]);
+  });
+
+  it("takes the folder's SEO fields from its folder note", () => {
+    const withSeo = posts.map((p) =>
+      p.meta.isFolderNote
+        ? {
+            ...p,
+            meta: {
+              ...p.meta,
+              socialImage: "/attachments/course/card.png",
+              level: "advanced" as const,
+              authors: ["Ada"],
+              noindex: true,
+            },
+          }
+        : p,
+    );
+    expect(createIndex(withSeo).folders()[0]).toMatchObject({
+      slug: "course",
+      socialImage: "/attachments/course/card.png",
+      level: "advanced",
+      authors: ["Ada"],
+      noindex: true,
+    });
+    // a part's fields never leak into the folder
+    const noNote = withSeo.filter((p) => !p.meta.isFolderNote);
+    noNote[0] = { ...noNote[0]!, meta: { ...noNote[0]!.meta, level: "beginner" } };
+    expect(createIndex(noNote).folders()[0]).toMatchObject({
+      level: null,
+      socialImage: null,
+      authors: [],
+      noindex: false,
+    });
   });
 
   it("attaches the inline SVG of the folder note's cover, only for folders the viewer sees", () => {

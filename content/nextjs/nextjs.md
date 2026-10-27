@@ -2,8 +2,9 @@
 title: Next.js in Practice
 description: A practical, source-backed course on Next.js 16, from the App Router, Server Components and Cache Components to rendering strategies, auth patterns and recipes for everyday problems.
 cover: cover.svg
+social-image: social-card.png
 tags: [nextjs, nextjs-course, course]
-created: 2026-10-25T19:47:09.133Z
+created: 2026-10-27T09:51:45.107Z
 ---
 
 # Next.js in Practice

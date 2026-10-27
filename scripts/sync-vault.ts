@@ -8,6 +8,7 @@ import { mkdir, readdir, readFile, rm, rmdir, stat, writeFile } from "node:fs/pr
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  buildSiteData,
   classifyNotes,
   contentPathFor,
   emptySummary,
@@ -15,8 +16,10 @@ import {
   isAttachmentFile,
   isNoteFile,
   isSkippedDir,
+  partitionSiteNotes,
   planAttachments,
   prepareNote,
+  serializeSiteData,
   splitFrontmatter,
   type SyncSummary,
   type VaultNote,
@@ -26,6 +29,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const vaultDir = resolve(root, process.env.OBSIDIAN_VAULT ?? "../obsidian");
 const contentDir = join(root, "content");
 const attachmentsDir = join(root, "public", "attachments");
+/** site settings + authors from the vault's site notes (content-relative) */
+const SITE_JSON = "site.json";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
@@ -124,7 +129,7 @@ export async function sync(): Promise<SyncSummary> {
   if (!existsSync(vaultDir)) throw new Error(`vault not found: ${vaultDir} (set OBSIDIAN_VAULT)`);
   const scan = await scanVault();
 
-  const notes: VaultNote[] = [];
+  const allNotes: VaultNote[] = [];
   const sources = new Map<string, string>();
   const invalid: string[] = [];
   for (const path of scan.notes) {
@@ -132,20 +137,32 @@ export async function sync(): Promise<SyncSummary> {
     const { data, body, error } = splitFrontmatter(source);
     if (error) invalid.push(`  ${path}: ${error}`);
     sources.set(path, source);
-    notes.push({ path, data, body });
+    allNotes.push({ path, data, body });
   }
   // Invalid YAML crashes the MDX build, and its visibility (which may cascade to a folder) can't be
   // trusted, so stop before writing anything and keep the last good content/.
   if (invalid.length) {
     throw new Error(`invalid frontmatter (quote values that contain ": "):\n${invalid.join("\n")}`);
   }
+  // Site notes (`site:` key) configure content/site.json and are never published. They are split off
+  // before classification so they are found even inside `.nopublish` trees (e.g. `_site/`).
+  const { site: siteNotes, notes } = partitionSiteNotes(allNotes);
+  summary.site.push(...siteNotes.map((n) => n.path));
+  const siteBuild = buildSiteData(siteNotes, new Set(scan.attachments));
+  summary.warnings.push(...siteBuild.warnings);
   const { states, warnings } = classifyNotes(notes, {
     private: scan.privateMarkers,
     nopublish: scan.nopublishMarkers,
   });
   summary.warnings.push(...warnings);
 
-  const expected = new Set<string>();
+  const expected = new Set<string>([SITE_JSON]);
+  const siteChange = await writeIfChanged(
+    join(contentDir, SITE_JSON),
+    serializeSiteData(siteBuild.data),
+  );
+  if (siteChange === "added") summary.added.push(SITE_JSON);
+  else if (siteChange === "updated") summary.updated.push(SITE_JSON);
   for (const note of notes) {
     const state = states.get(note.path) ?? "excluded";
     const target = contentPathFor(note.path, state);
@@ -168,7 +185,7 @@ export async function sync(): Promise<SyncSummary> {
   }
 
   // Attachments keep their vault-relative path; refs resolve like Obsidian (see resolveAttachment).
-  const plan = planAttachments(notes, states, new Set(scan.attachments));
+  const plan = planAttachments(notes, states, new Set(scan.attachments), siteBuild.attachments);
   summary.warnings.push(...plan.warnings);
   const expectedAttachments = new Set(plan.publish);
   for (const path of plan.publish) {

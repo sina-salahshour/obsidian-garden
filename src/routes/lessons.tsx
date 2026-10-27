@@ -4,7 +4,9 @@ import { EmptyState } from "~/components/ui/States";
 import { getFolders, getSeries } from "~/content/functions";
 import { formatDuration, plural } from "~/lib/format";
 import { enter } from "~/lib/motion";
-import { seo } from "~/lib/seo";
+import { breadcrumbNode, collectionPageNode, itemListNode } from "~/lib/schema";
+import { seo, siteUrlFrom } from "~/lib/seo";
+import { site } from "~/site.config";
 
 /**
  * ssr: true — a content page: the full course index renders on the server so it is crawlable,
@@ -22,13 +24,41 @@ export const Route = createFileRoute("/lessons")({
       minutes: (series[i] ?? []).reduce((sum, p) => sum + p.readingMinutes, 0),
     }));
   },
-  head: ({ matches }) => {
-    const siteUrl = (matches[0]?.loaderData as { siteUrl?: string } | undefined)?.siteUrl;
+  head: ({ matches, loaderData }) => {
+    const siteUrl = siteUrlFrom(matches);
+    const description =
+      "Every course in the garden: multi-part deep dives, meant to be read in order.";
     return seo({
       siteUrl,
       title: "Lessons",
-      description: "Every course in the garden: multi-part deep dives, meant to be read in order.",
+      description,
       path: "/lessons",
+      schema: (origin) => {
+        const list = itemListNode(
+          origin,
+          "/lessons",
+          (loaderData ?? []).map(({ folder }) => ({
+            name: folder.title,
+            path: `/series/${folder.slug}`,
+          })),
+        );
+        const crumbs = breadcrumbNode(origin, "/lessons", [
+          { name: "Home", path: "/" },
+          { name: "Lessons", path: "/lessons" },
+        ]);
+        return [
+          collectionPageNode(origin, {
+            path: "/lessons",
+            name: "Lessons",
+            description,
+            inLanguage: site.locale,
+            breadcrumbId: crumbs["@id"] as string,
+            mainEntityId: list["@id"] as string,
+          }),
+          list,
+          crumbs,
+        ];
+      },
     });
   },
   pendingComponent: () => (

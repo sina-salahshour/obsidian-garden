@@ -12,7 +12,7 @@ import { cn } from "~/lib/cn";
 import { findRanges } from "~/lib/highlight";
 import { useDebounced } from "~/lib/hooks";
 import { ease, spring } from "~/lib/motion";
-import { seo } from "~/lib/seo";
+import { seo, siteUrlFrom } from "~/lib/seo";
 
 /*
  * ssr: "data-only" — the loader runs on the server for the first request, so results arrive with
@@ -29,8 +29,12 @@ export const Route = createFileRoute("/search")({
     q: deps.q,
     hits: deps.q ? await searchPosts({ data: { q: deps.q, limit: 30 } }) : [],
   }),
-  head: ({ match }) =>
-    seo({ title: match.search.q ? `Search: ${match.search.q}` : "Search", noindex: true }),
+  head: ({ match, matches }) =>
+    seo({
+      siteUrl: siteUrlFrom(matches),
+      title: match.search.q ? `Search: ${match.search.q}` : "Search",
+      noindex: true,
+    }),
   pendingMs: 400,
   pendingComponent: SearchPending,
   component: SearchPage,

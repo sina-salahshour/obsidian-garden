@@ -47,6 +47,21 @@ export interface PostMeta {
   headings: Heading[];
   /** slugs of resolved outgoing [[wikilinks]] (unresolved ones are dropped), deduped */
   links: string[];
+  /**
+   * frontmatter `author` / `authors` as raw names (`[[Wikilink|x]]` unwrapped), trimmed, deduped; `[]`
+   * when absent. Resolve them to site author records with `resolveAuthors` (site.config.ts).
+   */
+  authors: string[];
+  /** frontmatter `social-image` ("/attachments/…" or an absolute URL), else null */
+  socialImage: string | null;
+  /** frontmatter `noindex: true`: still published, but robots noindex and left out of the sitemap */
+  noindex: boolean;
+  /** frontmatter `canonical`: absolute http(s) URL of the original (cross-posts), else null */
+  canonical: string | null;
+  /** frontmatter `schema` (case-insensitive), else null (the page picks a default) */
+  schemaType: "Article" | "BlogPosting" | "TechArticle" | null;
+  /** frontmatter `level` (case-insensitive), else null */
+  level: "beginner" | "intermediate" | "advanced" | null;
 }
 
 export type PostSort = "newest" | "oldest" | "title";
@@ -119,6 +134,51 @@ export interface FolderInfo {
   count: number;
   /** newest `date` among its notes */
   latest: string;
+  /** folder note's `social-image`, else null */
+  socialImage: string | null;
+  /** folder note's `level`, else null */
+  level: PostMeta["level"];
+  /** folder note's raw `authors` (see PostMeta.authors), else [] */
+  authors: string[];
+  /** folder note's `noindex`, else false */
+  noindex: boolean;
+}
+
+/** A Person from a `site: author` vault note (content/site.json). */
+export interface SiteAuthor {
+  /** slugifySegment(name) */
+  id: string;
+  name: string;
+  aliases: string[];
+  /** bio: frontmatter description, else the note's first paragraph; "" when absent */
+  description: string;
+  url: string | null;
+  /** avatar: "/attachments/…" or an absolute URL */
+  image: string | null;
+  /** profile URLs (schema.org sameAs) */
+  sameAs: string[];
+  /** "@handle" */
+  twitter: string | null;
+  jobTitle: string | null;
+}
+
+/** Site-wide settings aggregated from the vault's `site:` notes by the sync (content/site.json). */
+export interface SiteData {
+  title: string;
+  description: string;
+  /** BCP-47, e.g. "en" */
+  locale: string;
+  /** canonical origin without a trailing slash, e.g. "https://example.com"; null when unset */
+  url: string | null;
+  /** default social image: "/attachments/…" or an absolute URL */
+  image: string | null;
+  keywords: string[];
+  /** site handle, "@handle" */
+  twitter: string | null;
+  /** user-agent names disallowed in robots.txt */
+  blockCrawlers: string[];
+  /** default author FIRST; [] when the vault has no author notes */
+  authors: SiteAuthor[];
 }
 
 /** Who is asking. Today always anonymous unless DEV `SHOW_PRIVATE=1`; a future login sets isAdmin. */

@@ -10,7 +10,9 @@ import { getFolders, getPosts, getTags } from "~/content/functions";
 import { cn } from "~/lib/cn";
 import { plural } from "~/lib/format";
 import { spring } from "~/lib/motion";
-import { seo } from "~/lib/seo";
+import { breadcrumbNode, collectionPageNode } from "~/lib/schema";
+import { seo, siteUrlFrom } from "~/lib/seo";
+import { site } from "~/site.config";
 
 const searchSchema = z.object({
   tag: z.string().optional().catch(undefined),
@@ -44,13 +46,33 @@ export const Route = createFileRoute("/posts/")({
     </main>
   ),
   head: ({ matches, match }) => {
-    const siteUrl = (matches[0]?.loaderData as { siteUrl?: string } | undefined)?.siteUrl;
+    const siteUrl = siteUrlFrom(matches);
     const tag = match.search.tag;
+    const title = tag ? `#${tag}` : "All posts";
+    const description = tag ? `Notes tagged #${tag}.` : site.description;
+    const path = tag ? `/posts?tag=${encodeURIComponent(tag)}` : "/posts";
     return seo({
       siteUrl,
-      title: tag ? `#${tag}` : "All posts",
-      description: tag ? `Notes tagged #${tag}.` : undefined,
-      path: tag ? `/posts?tag=${encodeURIComponent(tag)}` : "/posts",
+      title,
+      description,
+      path,
+      schema: (origin) => {
+        const crumbs = breadcrumbNode(origin, path, [
+          { name: "Home", path: "/" },
+          { name: "Notes", path: "/posts" },
+          ...(tag ? [{ name: title, path }] : []),
+        ]);
+        return [
+          collectionPageNode(origin, {
+            path,
+            name: title,
+            description,
+            inLanguage: site.locale,
+            breadcrumbId: crumbs["@id"] as string,
+          }),
+          crumbs,
+        ];
+      },
     });
   },
   component: PostsPage,

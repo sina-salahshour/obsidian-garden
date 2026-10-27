@@ -42,14 +42,19 @@ so run `pnpm sync` and commit the result before you deploy.
   `description` and `cover: cover.svg` in its frontmatter. Numbered filenames (`07 Foo.md`) set the
   part order.
 
+- **SEO:** the sitemap, `robots.txt`, RSS, canonical URLs, social cards and JSON-LD (posts, authors, courses,
+  breadcrumbs) are generated. Site settings and authors come from vault notes with `site: settings` /
+  `site: author` (committed, public, in `content/site.json`); notes take `author`, `social-image`, `noindex`,
+  `canonical`, `schema` and `level`. See the vault's Writing Guide.
+
 ## Environment
 
-| Variable       | Purpose                                                                                                                                               |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SITE_URL`     | Canonical origin for RSS, sitemap and canonical links, e.g. `https://garden.example.com`. On Vercel it falls back to `VERCEL_PROJECT_PRODUCTION_URL`. |
-| `SHOW_PRIVATE` | `SHOW_PRIVATE=1 pnpm dev` lets you preview private notes. Dev only.                                                                                   |
-| `NITRO_PRESET` | Deployment target used at build time (see below). Defaults to `node-server`.                                                                          |
-| `PORT`         | Port for `pnpm start` (node-server preset).                                                                                                           |
+| Variable       | Purpose                                                                                                                                                   |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SITE_URL`     | Canonical origin for RSS, sitemap and canonical links, e.g. `https://garden.example.com`. Else the site note `url`, then `VERCEL_PROJECT_PRODUCTION_URL`. |
+| `SHOW_PRIVATE` | `SHOW_PRIVATE=1 pnpm dev` lets you preview private notes. Dev only.                                                                                       |
+| `NITRO_PRESET` | Deployment target used at build time (see below). Defaults to `node-server`.                                                                              |
+| `PORT`         | Port for `pnpm start` (node-server preset).                                                                                                               |
 
 ## Deploy to Vercel
 

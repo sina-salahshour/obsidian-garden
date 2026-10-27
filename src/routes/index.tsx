@@ -9,7 +9,7 @@ import { buttonStyles, EmptyState } from "~/components/ui/States";
 import { TagChip } from "~/components/ui/TagChip";
 import { getFolders, getPosts, getSeries, getTags } from "~/content/functions";
 import { palette } from "~/lib/palette";
-import { seo } from "~/lib/seo";
+import { seo, siteUrlFrom } from "~/lib/seo";
 import { site } from "~/site.config";
 
 export const Route = createFileRoute("/")({
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/")({
     };
   },
   head: ({ matches }) => {
-    const siteUrl = (matches[0]?.loaderData as { siteUrl?: string } | undefined)?.siteUrl;
+    const siteUrl = siteUrlFrom(matches);
     return seo({ siteUrl, path: "/" });
   },
   pendingComponent: () => (

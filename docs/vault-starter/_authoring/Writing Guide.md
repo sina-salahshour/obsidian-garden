@@ -41,9 +41,21 @@ tags: [topic, subtopic]
 aliases: [Other name] # wikilinks may target an alias
 cover: cover.svg # or image/banner; a file in the vault, copied to /attachments
 visibility: private # optional, see above
+author: Ada Lovelace # who wrote it: a name, a list, or a [[wikilink]] to an author note; else the default author
+social-image: share.png # raster ~1200x630 for link previews; else a non-SVG cover, else the site image
+noindex: true # keep it published but out of search engines and the sitemap
+canonical: https://other.site/post # original URL, only for cross-posts
+schema: TechArticle # Article | BlogPosting | TechArticle; default BlogPosting, TechArticle in a course
+level: beginner # beginner | intermediate | advanced (shown to search engines)
 ---
 ```
 
+- `social-image` should be a raster (PNG/JPG, ~1200×630): social sites do not render SVG covers. Without it the
+  site uses the cover if it is not an SVG, then the site image, then `/og.png`.
+- `noindex: true` keeps a note published and linkable but tells search engines to skip it (it also leaves the
+  sitemap). It is not privacy: use `visibility: private` to hide a note, `publish: false` to keep it off the site.
+- `canonical` is only for cross-posts (the note first appeared elsewhere). Leave it out otherwise: the site sets
+  its own canonical URL, and a note with `canonical` drops out of the sitemap.
 - Tags are lowercased and deduped; inline `#tags` in the body count too (not in code, headings or URLs).
 - Start the body with `# Title` matching the title; the site renders the title itself and drops that H1.
 - Use `##`–`####` for sections; they become the table of contents and `#anchor` targets.
@@ -55,7 +67,70 @@ visibility: private # optional, see above
 - Give each course a main note: `<folder>/<folder>.md` (preferred, e.g. `example-course/example-course.md`),
   or `<folder>.md` next to the folder, or `<folder>/index.md`. Frontmatter `title`, `description`, `cover`.
   Its body is the course intro on `/series/<folder>`; list the parts there with wikilinks.
+- The main note's `level`, `social-image` and `author` apply to the whole course (its page, markup and cards).
 - Keep a designed cover (`cover.svg`, ~1600×900, readable on light and dark, no external fonts) in the folder.
+
+## Site notes
+
+Site-wide settings and authors come from ordinary notes, not from code. Any note, anywhere in the vault, whose
+frontmatter has a `site:` key is a site note. It is never published as a page, and it is read even inside a
+`.nopublish` folder, so keep them together in `_site/` with a `.nopublish` marker. `draft: true` disables one.
+The sync aggregates them into `content/site.json`.
+
+**Their data is public.** `content/site.json` is committed to the blog repo and shipped to every visitor. Never
+put secrets, private emails or anything unpublished in a site note.
+
+`site: settings` (zero or more; merged in vault-path order, a later note overrides a field an earlier one set, and
+the sync warns on such an override). All keys are optional:
+
+```yaml
+---
+site: settings
+title: My Garden # else the first "# H1", else "Obsidian Garden"
+description: What this site is about. # else the body's first paragraph
+url: https://example.com # canonical origin, no trailing slash needed
+locale: en # BCP-47, default en
+image: share.png # default social image (raster, ~1200x630), resolved like an embed
+keywords: [react, internals]
+twitter: "@handle"
+block-crawlers: [GPTBot, CCBot] # user agents to Disallow in robots.txt
+---
+```
+
+`site: author` (one note per person):
+
+```yaml
+---
+site: author
+name: Ada Lovelace # else title, else the first "# H1", else the filename
+aliases: [Ada] # other names that notes may use in `author`
+description: Short bio. # else the body's first paragraph
+url: https://example.com/about
+image: ada.jpg # avatar, resolved like an embed
+same-as: [https://github.com/ada, https://mastodon.example/@ada]
+twitter: "@ada"
+job-title: Engineer
+default: true # the default author; else the first author by vault path
+---
+```
+
+Notes without `author` use the default author. A note's `author` may be a name, an alias, or a `[[wikilink]]` to an
+author note. Unknown `site:` values are ignored with a warning. Images used by site notes are published like any
+other attachment.
+
+## SEO
+
+Automatic: `/sitemap.xml`, `/robots.txt`, `/rss.xml`, a canonical URL, Open Graph and Twitter cards, and JSON-LD
+per page type (site, person, blog post, breadcrumbs, course, lesson list). Course parts get `TechArticle` markup
+and point at their `Course`; other notes are `BlogPosting`. `/search` and `/graph` are `noindex`.
+
+You control the inputs:
+
+- A specific `description`, about 150–160 characters, that says what the reader will learn. It is the search
+  snippet and the card text.
+- A raster `social-image` for notes or courses that deserve their own preview card.
+- `level` and `schema` where the defaults are wrong, and `author` when the default author is not the writer.
+- Real values in the `site: settings` note (`url`, `image`, `twitter`), so absolute URLs and cards are right.
 
 ## Syntax the site renders
 

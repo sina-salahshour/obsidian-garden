@@ -7,18 +7,37 @@ import { getTags } from "~/content/functions";
 import { spotlightHandlers } from "~/lib/hooks";
 import { plural } from "~/lib/format";
 import { spring } from "~/lib/motion";
-import { seo } from "~/lib/seo";
+import { breadcrumbNode, collectionPageNode } from "~/lib/schema";
+import { seo, siteUrlFrom } from "~/lib/seo";
+import { site } from "~/site.config";
 
 export const Route = createFileRoute("/tags")({
   ssr: true,
   loader: () => getTags(),
   head: ({ matches }) => {
-    const siteUrl = (matches[0]?.loaderData as { siteUrl?: string } | undefined)?.siteUrl;
+    const siteUrl = siteUrlFrom(matches);
+    const description = "Every topic in the garden, with how often it comes up.";
     return seo({
       siteUrl,
       title: "Tags",
-      description: "Every topic in the garden, with how often it comes up.",
+      description,
       path: "/tags",
+      schema: (origin) => {
+        const crumbs = breadcrumbNode(origin, "/tags", [
+          { name: "Home", path: "/" },
+          { name: "Tags", path: "/tags" },
+        ]);
+        return [
+          collectionPageNode(origin, {
+            path: "/tags",
+            name: "Tags",
+            description,
+            inLanguage: site.locale,
+            breadcrumbId: crumbs["@id"] as string,
+          }),
+          crumbs,
+        ];
+      },
     });
   },
   pendingComponent: () => (

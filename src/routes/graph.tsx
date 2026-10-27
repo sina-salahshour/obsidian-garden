@@ -4,7 +4,7 @@ import { GraphView, type GraphNodeInfo } from "~/components/graph/GraphView";
 import { Skeleton } from "~/components/ui/Skeleton";
 import { getFolders, getGraph, getPosts } from "~/content/functions";
 import { plural } from "~/lib/format";
-import { seo } from "~/lib/seo";
+import { seo, siteUrlFrom } from "~/lib/seo";
 
 /*
  * ssr: false — the graph is a <canvas> driven by a d3-force simulation, sized from the real
@@ -30,11 +30,14 @@ export const Route = createFileRoute("/graph")({
     for (const f of folders) if (f.indexSlug) info[f.indexSlug] = { description: f.description };
     return { graph, info };
   },
-  head: () =>
+  // noindex: the client-only canvas has no crawlable content (and it stays out of the sitemap).
+  head: ({ matches }) =>
     seo({
+      siteUrl: siteUrlFrom(matches),
       title: "Graph",
       description: "Every note and how they link to each other.",
       path: "/graph",
+      noindex: true,
     }),
   pendingMs: 0,
   pendingComponent: GraphPending,

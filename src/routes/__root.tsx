@@ -18,6 +18,8 @@ export const Route = createRootRoute({
   loader: async () => ({ siteUrl: await getSiteUrl() }),
   staleTime: Infinity,
   head: ({ loaderData }) => {
+    // Site-wide defaults only: every child head() overrides these by name/property. JSON-LD (scripts) is
+    // emitted by the leaf route alone so each page carries exactly one @graph.
     const base = seo({ siteUrl: loaderData?.siteUrl });
     return {
       meta: [
@@ -31,13 +33,13 @@ export const Route = createRootRoute({
         },
         { name: "theme-color", media: "(prefers-color-scheme: dark)", content: THEME_COLORS.dark },
         { property: "og:site_name", content: site.title },
-        { property: "og:locale", content: site.locale },
         { name: "author", content: site.author },
         ...base.meta,
       ],
       links: [
         { rel: "stylesheet", href: appCss },
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+        { rel: "manifest", href: "/manifest.webmanifest" },
         { rel: "alternate", type: "application/rss+xml", title: site.title, href: "/rss.xml" },
       ],
     };

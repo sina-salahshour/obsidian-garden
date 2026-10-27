@@ -108,6 +108,25 @@ export function frontmatterOf(tree: Root): Record<string, unknown> {
   }
 }
 
+/** Resolves a frontmatter image ref like an embed: absolute URL kept, else "/attachments/…" or null. */
+function imageRef(
+  value: string,
+  label: string,
+  attachments: ReadonlySet<string>,
+  noteDir: string,
+  file: FileLike,
+): string | null {
+  if (/^https?:\/\//i.test(value) || value.startsWith("//")) return value;
+  const { path } = resolveAttachment(value, noteDir, attachments);
+  if (!path) {
+    file.message(
+      `${label} "${value}" not found in public/attachments (run the sync); ${label} set to null`,
+    );
+    return null;
+  }
+  return attachmentHref(path);
+}
+
 function coverOf(
   fm: Record<string, unknown>,
   attachments: ReadonlySet<string>,
@@ -117,18 +136,78 @@ function coverOf(
   for (const key of ["cover", "image", "banner"]) {
     const raw = fm[key];
     if (typeof raw !== "string" || !raw.trim()) continue;
-    const value = raw.trim();
-    if (/^https?:\/\//i.test(value) || value.startsWith("//")) return value;
-    const { path } = resolveAttachment(value, noteDir, attachments);
-    if (!path) {
-      file.message(
-        `cover "${value}" not found in public/attachments (run the sync); cover set to null`,
-      );
-      return null;
-    }
-    return attachmentHref(path);
+    return imageRef(raw.trim(), "cover", attachments, noteDir, file);
   }
   return null;
+}
+
+function socialImageOf(
+  fm: Record<string, unknown>,
+  attachments: ReadonlySet<string>,
+  noteDir: string,
+  file: FileLike,
+): string | null {
+  const raw = fm["social-image"];
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  return imageRef(raw.trim(), "social-image", attachments, noteDir, file);
+}
+
+/** Flattens YAML values (an unquoted `[[Name]]` parses as a nested list) into trimmed strings. */
+function flatStrings(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(flatStrings);
+  if (typeof value === "string" || typeof value === "number") return [String(value)];
+  return [];
+}
+
+/** `author` / `authors` -> raw names: `[[Name|x]]`, `[[Name#h]]` -> "Name"; trimmed, deduped. */
+export function authorNames(fm: Record<string, unknown>): string[] {
+  const raw = [...flatStrings(fm.authors), ...flatStrings(fm.author)];
+  const out: string[] = [];
+  for (const value of raw) {
+    let name = value.trim();
+    const wiki = /^!?\[\[([\s\S]*?)\]\]$/.exec(name);
+    if (wiki) name = wiki[1]!;
+    name = name.replace(/\\\|/g, "|").split("|")[0]!.split("#")[0]!.trim();
+    if (name && !out.some((n) => n.toLowerCase() === name.toLowerCase())) out.push(name);
+  }
+  return out;
+}
+
+function isTruthy(value: unknown): boolean {
+  return value === true || (typeof value === "string" && /^(true|yes|on)$/i.test(value.trim()));
+}
+
+function canonicalOf(fm: Record<string, unknown>, file: FileLike): string | null {
+  const raw = fm.canonical;
+  if (raw == null || raw === "") return null;
+  const value = typeof raw === "string" ? raw.trim() : "";
+  if (/^https?:\/\/[^\s/]+/i.test(value)) {
+    try {
+      return new URL(value).href;
+    } catch {
+      // fall through to the warning
+    }
+  }
+  file.message(`canonical ${JSON.stringify(raw)} is not an absolute http(s) URL; ignored`);
+  return null;
+}
+
+const SCHEMA_TYPES = ["Article", "BlogPosting", "TechArticle"] as const;
+const LEVELS = ["beginner", "intermediate", "advanced"] as const;
+
+function enumOf<T extends string>(
+  fm: Record<string, unknown>,
+  key: string,
+  values: readonly T[],
+  file: FileLike,
+): T | null {
+  const raw = fm[key];
+  if (raw == null || raw === "") return null;
+  const value = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  const hit = values.find((v) => v.toLowerCase() === value);
+  if (!hit)
+    file.message(`${key} ${JSON.stringify(raw)} is not one of ${values.join(", ")}; ignored`);
+  return hit ?? null;
 }
 
 /** Plain text used by the server-only search index: prose, headings, callouts, tables; no fenced code. */
@@ -265,6 +344,12 @@ export function remarkMeta(options: MetaOptions) {
       readingMinutes,
       headings: [],
       links,
+      authors: authorNames(fm),
+      socialImage: socialImageOf(fm, options.attachments(), dirOf(logical), file),
+      noindex: isTruthy(fm.noindex),
+      canonical: canonicalOf(fm, file),
+      schemaType: enumOf(fm, "schema", SCHEMA_TYPES, file),
+      level: enumOf(fm, "level", LEVELS, file),
     };
     file.data.meta = meta;
     file.data.searchText = plainText(tree);

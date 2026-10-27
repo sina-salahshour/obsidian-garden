@@ -15,7 +15,9 @@ import { getFolders, getPost, getRelated, getSeries } from "~/content/functions"
 import { loadPost } from "~/content/modules";
 import { formatDate, formatReading, isoDate } from "~/lib/format";
 import { enter } from "~/lib/motion";
-import { seo } from "~/lib/seo";
+import { articleNode, breadcrumbNode } from "~/lib/schema";
+import { seo, siteUrlFrom, socialImage } from "~/lib/seo";
+import { resolveAuthors, site } from "~/site.config";
 
 export const Route = createFileRoute("/posts/$")({
   ssr: true,
@@ -43,20 +45,57 @@ export const Route = createFileRoute("/posts/$")({
     };
   },
   head: ({ loaderData, matches }) => {
-    const siteUrl = (matches[0]?.loaderData as { siteUrl?: string } | undefined)?.siteUrl;
+    const siteUrl = siteUrlFrom(matches);
     if (!loaderData) return seo({ siteUrl, title: "Note not found", noindex: true });
-    const { meta } = loaderData;
+    const { meta, folder } = loaderData;
+    const path = `/posts/${meta.slug}`;
+    const image = socialImage(meta.socialImage, meta.cover, folder?.socialImage, folder?.cover);
+    // A part without its own byline inherits the course's authors (then the site's default author).
+    const authors = resolveAuthors(meta.authors.length ? meta.authors : (folder?.authors ?? []));
     return seo({
       siteUrl,
       title: meta.title,
       description: meta.description,
-      path: `/posts/${meta.slug}`,
-      image: meta.cover ?? loaderData.folder?.cover,
+      path,
+      canonical: meta.canonical,
+      image,
       type: "article",
       publishedTime: meta.date,
       modifiedTime: meta.updated,
       tags: meta.tags,
-      noindex: meta.visibility === "private",
+      section: folder?.title,
+      authors,
+      noindex: meta.visibility === "private" || meta.noindex,
+      schema: (origin) => [
+        articleNode(origin, {
+          type: meta.schemaType ?? (folder ? "TechArticle" : "BlogPosting"),
+          path,
+          title: meta.title,
+          description: meta.description,
+          image,
+          datePublished: meta.date,
+          dateModified: meta.updated,
+          authors,
+          publisher: site.defaultAuthor,
+          tags: meta.tags,
+          wordCount: meta.wordCount,
+          readingMinutes: meta.readingMinutes,
+          inLanguage: site.locale,
+          courseSlug: folder?.slug,
+          position: meta.order,
+          level: meta.level ?? folder?.level,
+        }),
+        breadcrumbNode(origin, path, [
+          { name: "Home", path: "/" },
+          ...(folder
+            ? [
+                { name: "Lessons", path: "/lessons" },
+                { name: folder.title, path: `/series/${folder.slug}` },
+              ]
+            : [{ name: "Notes", path: "/posts" }]),
+          { name: meta.title, path },
+        ]),
+      ],
     });
   },
   pendingComponent: PageSkeleton,

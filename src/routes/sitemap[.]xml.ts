@@ -1,13 +1,9 @@
-// sitemap.xml: home, posts index, tags, lessons index, series pages and every public note.
+// sitemap.xml: home, posts index, tag pages, tags, lessons index, series pages and every public note.
+// Left out: noindex notes/series, cross-posts with a `canonical` elsewhere, /search and /graph (noindex).
 import { createFileRoute } from "@tanstack/react-router";
 import { indexFor } from "../content/posts.server.ts";
 import { resolveSiteUrl } from "../content/site-url.server.ts";
-
-const escapeXml = (value: string) =>
-  value.replace(
-    /[<>&'"]/g,
-    (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[c]!,
-  );
+import { escapeXml } from "../lib/xml.ts";
 
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
@@ -15,21 +11,22 @@ export const Route = createFileRoute("/sitemap.xml")({
       GET: ({ request }) => {
         const origin = resolveSiteUrl(request);
         const index = indexFor({ isAdmin: false });
+        const folders = index.folders().filter((f) => !f.noindex);
         const urls: { loc: string; lastmod?: string }[] = [
           { loc: `${origin}/`, lastmod: index.all[0]?.date },
           { loc: `${origin}/posts` },
+          ...index.tags().map((t) => ({ loc: `${origin}/posts?tag=${encodeURIComponent(t.tag)}` })),
           { loc: `${origin}/tags` },
           {
             loc: `${origin}/lessons`,
-            lastmod: index
-              .folders()
+            lastmod: folders
               .map((f) => f.latest)
               .toSorted()
               .at(-1),
           },
-          ...index.folders().map((f) => ({ loc: `${origin}/series/${f.slug}`, lastmod: f.latest })),
+          ...folders.map((f) => ({ loc: `${origin}/series/${f.slug}`, lastmod: f.latest })),
           ...index.all
-            .filter((m) => !m.isFolderNote)
+            .filter((m) => !m.isFolderNote && !m.noindex && !m.canonical)
             .map((m) => ({ loc: `${origin}/posts/${m.slug}`, lastmod: m.updated ?? m.date })),
         ];
         const body = urls

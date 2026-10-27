@@ -10,7 +10,19 @@ import { getFolders, getSeries } from "~/content/functions";
 import { loadPost } from "~/content/modules";
 import { formatDate, formatDuration, isoDate, plural } from "~/lib/format";
 import { enter } from "~/lib/motion";
-import { seo } from "~/lib/seo";
+import { breadcrumbNode, courseNode } from "~/lib/schema";
+import { seo, siteUrlFrom, socialImage } from "~/lib/seo";
+import { resolveAuthors, site } from "~/site.config";
+
+/** The course's most common tags (a keyword list, not every tag any part carries). */
+function topTags(parts: { tags: string[] }[], limit = 10): string[] {
+  const counts = new Map<string, number>();
+  for (const t of parts.flatMap((p) => p.tags)) counts.set(t, (counts.get(t) ?? 0) + 1);
+  return [...counts]
+    .toSorted((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([t]) => t);
+}
 
 export const Route = createFileRoute("/series/$folder")({
   ssr: true,
@@ -26,15 +38,41 @@ export const Route = createFileRoute("/series/$folder")({
     return { folder, parts };
   },
   head: ({ loaderData, matches }) => {
-    const siteUrl = (matches[0]?.loaderData as { siteUrl?: string } | undefined)?.siteUrl;
+    const siteUrl = siteUrlFrom(matches);
     if (!loaderData) return seo({ siteUrl, title: "Series not found", noindex: true });
-    const { folder } = loaderData;
+    const { folder, parts } = loaderData;
+    const path = `/series/${folder.slug}`;
+    const description = folder.description || `${folder.count} parts, in order.`;
+    const image = socialImage(folder.socialImage, folder.cover);
+    const authors = resolveAuthors(folder.authors);
     return seo({
       siteUrl,
       title: folder.title,
-      description: folder.description || `${folder.count} parts, in order.`,
-      path: `/series/${folder.slug}`,
-      image: folder.cover,
+      description,
+      path,
+      image,
+      authors,
+      noindex: folder.noindex,
+      schema: (origin) => [
+        courseNode(origin, {
+          slug: folder.slug,
+          title: folder.title,
+          description,
+          image,
+          authors,
+          provider: site.defaultAuthor,
+          inLanguage: site.locale,
+          keywords: topTags(parts),
+          level: folder.level,
+          totalMinutes: parts.reduce((s, p) => s + p.readingMinutes, 0),
+          parts,
+        }),
+        breadcrumbNode(origin, path, [
+          { name: "Home", path: "/" },
+          { name: "Lessons", path: "/lessons" },
+          { name: folder.title, path },
+        ]),
+      ],
     });
   },
   pendingComponent: PageSkeleton,

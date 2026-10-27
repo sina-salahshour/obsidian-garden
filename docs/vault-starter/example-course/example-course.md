@@ -8,7 +8,7 @@ tags: [example]
 
 This note is the course's main note (`<folder>/<folder>.md`). Its body is the intro shown on `/series/example-course`.
 
-Optional: add `cover: cover.svg` to the frontmatter and put a `cover.svg` (about 1600x900) in this folder.
+Optional: add `level: beginner`, `social-image: share.png` (a raster, about 1200x630) and `cover: cover.svg` to the frontmatter and put a `cover.svg` (about 1600x900) in this folder.
 
 ## Parts
 
