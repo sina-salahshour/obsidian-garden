@@ -248,6 +248,9 @@ pnpm dev          # or: vp dev   -> http://localhost:3000
    the first of: the `SITE_URL` environment variable (for example `https://garden.example.com`), the `url` of your
    `site: settings` note (see "Site notes and SEO" in section 5), `VERCEL_PROJECT_PRODUCTION_URL`, then the request
    origin.
+4. Optional: set `VITE_GTM_ID` to your Google Tag Manager container ID (for example `GTM-XXXXXXX`). GTM is
+   omitted entirely when this variable is unset or empty. Since `VITE_` variables are embedded into client bundles
+   at build time, configure it in Vercel for the environments where you want tracking enabled and redeploy after changes.
 
 ### Other hosts
 

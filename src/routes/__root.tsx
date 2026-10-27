@@ -13,6 +13,8 @@ import { THEME_COLORS, themeScript } from "~/lib/theme";
 import { site } from "~/site.config";
 import appCss from "~/styles/app.css?url";
 
+const gtmId = import.meta.env.VITE_GTM_ID?.trim();
+
 export const Route = createRootRoute({
   // The absolute origin is resolved once on the server and reused by every route's head() for canonical/og URLs.
   loader: async () => ({ siteUrl: await getSiteUrl() }),
@@ -59,9 +61,34 @@ function RootDocument({ children }: { children: ReactNode }) {
       <head>
         {/* must run before first paint: no theme flash */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {gtmId && (
+          <>
+            <script
+              dangerouslySetInnerHTML={{
+                __html:
+                  "window.dataLayer = window.dataLayer || []; window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });",
+              }}
+            />
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`}
+            />
+          </>
+        )}
         <HeadContent />
       </head>
       <body>
+        {gtmId && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtmId)}`}
+              height="0"
+              width="0"
+              title="Google Tag Manager"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        )}
         <MotionConfig reducedMotion="user">
           <div className="flex min-h-dvh flex-col">
             <SiteHeader />
