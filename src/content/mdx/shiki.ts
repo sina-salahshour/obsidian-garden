@@ -24,6 +24,8 @@ export const shikiOptions: RehypeShikiOptions = {
   ],
   lazy: true,
   fallbackLanguage: "text",
+  // no blanket tabindex="0": CodeBlock makes a <pre> focusable only when it actually scrolls
+  tabindex: false,
   transformers: [
     {
       name: "data-language",

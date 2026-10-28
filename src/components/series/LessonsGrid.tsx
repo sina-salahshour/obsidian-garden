@@ -17,6 +17,8 @@ export interface Lesson {
 }
 
 type Variant = "panel" | "page";
+/** Heading level of each tile title; `false` renders a plain element (e.g. inside a nav panel). */
+type HeadingLevel = 2 | 3 | 4 | false;
 
 const gridClass = "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3";
 
@@ -29,16 +31,19 @@ export function LessonTile({
   folder,
   minutes,
   compact = false,
+  headingLevel = 3,
   onSelect,
   bodyVariants,
   className,
 }: Lesson & {
   compact?: boolean;
+  headingLevel?: HeadingLevel;
   bodyVariants?: Variants;
   onSelect?: () => void;
   className?: string;
 }) {
   const hover = useCardHover();
+  const Title = headingLevel ? (`h${headingLevel}` as const) : "p";
   return (
     <motion.article
       {...hover}
@@ -74,13 +79,14 @@ export function LessonTile({
         variants={bodyVariants}
         className={cn("flex flex-1 flex-col", compact ? "p-3.5" : "p-5")}
       >
-        <h3
+        <Title
           className={cn(
             "font-serif leading-snug font-medium tracking-tight text-balance",
             compact ? "text-lg" : "text-xl sm:text-[1.375rem]",
           )}
         >
           <Link
+            tabIndex={0}
             to="/series/$folder"
             params={{ folder: folder.slug }}
             preload="intent"
@@ -92,7 +98,7 @@ export function LessonTile({
           >
             {folder.title}
           </Link>
-        </h3>
+        </Title>
         <dl className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[0.8125rem] text-muted">
           <div className="flex items-center gap-1.5">
             <dt className="sr-only">Parts</dt>
@@ -125,16 +131,19 @@ export function LessonTile({
 /**
  * Grid of course tiles. `variant="panel"` (header dropdown): compact tiles, the text staggering
  * in, `onSelect` when a tile is chosen. `variant="page"` (/lessons): full tiles with the CSS
- * `.enter` reveal, so it renders identically on the server.
+ * `.enter` reveal, so it renders identically on the server. `headingLevel` defaults to h2 on a
+ * page (under its h1) and to no heading in the panel, which sits before the page's own h1.
  */
 export function LessonsGrid({
   lessons,
   variant = "page",
+  headingLevel = variant === "panel" ? false : 2,
   onSelect,
   className,
 }: {
   lessons: Lesson[];
   variant?: Variant;
+  headingLevel?: HeadingLevel;
   onSelect?: () => void;
   className?: string;
 }) {
@@ -148,7 +157,13 @@ export function LessonsGrid({
       >
         {lessons.map((l) => (
           <li key={l.folder.slug}>
-            <LessonTile {...l} compact bodyVariants={fadeLift} onSelect={onSelect} />
+            <LessonTile
+              {...l}
+              compact
+              headingLevel={headingLevel}
+              bodyVariants={fadeLift}
+              onSelect={onSelect}
+            />
           </li>
         ))}
       </motion.ul>
@@ -158,7 +173,7 @@ export function LessonsGrid({
     <Reveal as="ul" delay={0.12} className={cn(gridClass, "gap-4 sm:gap-5", className)}>
       {lessons.map((l, i) => (
         <RevealItem as="li" key={l.folder.slug} index={i}>
-          <LessonTile {...l} onSelect={onSelect} />
+          <LessonTile {...l} headingLevel={headingLevel} onSelect={onSelect} />
         </RevealItem>
       ))}
     </Reveal>
@@ -191,7 +206,8 @@ export function LessonsGridSkeleton({
   className?: string;
 }) {
   return (
-    <div className={cn(gridClass, className)} role="status" aria-label="Loading lessons">
+    <div className={cn(gridClass, className)} role="status">
+      <span className="sr-only">Loading lessons…</span>
       {Array.from({ length: count }, (_, i) => (
         <LessonTileSkeleton key={i} compact={compact} />
       ))}

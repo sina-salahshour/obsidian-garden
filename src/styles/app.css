@@ -20,18 +20,22 @@
   --sunken: #f3f1ec;
   --fg: #1f1d1a;
   --muted: #625c53;
-  --subtle: #8d867b;
+  /* quieter than --muted but still >=4.5:1 on bg/surface/sunken */
+  --subtle: #736c61;
   --line: #e6e2da;
   --line-strong: #d4cec3;
   --accent: #6d4fd1;
   --accent-strong: #5a3dbd;
   --accent-fg: #ffffff;
   --warm: #c98a2b;
+  /* --warm is decorative (dots, strokes); use --warm-text for text (>=4.5:1) */
+  --warm-text: #945e10;
 
   --accent-soft: color-mix(in oklab, var(--accent) 9%, transparent);
   --accent-line: color-mix(in oklab, var(--accent) 28%, transparent);
   --mark: color-mix(in oklab, #f2c14e 38%, transparent);
-  --ring: color-mix(in oklab, var(--accent) 55%, transparent);
+  /* opaque so focus indicators stay >=3:1 against every surface */
+  --ring: var(--accent);
   --scrim: color-mix(in oklab, #1f1d1a 32%, transparent);
 
   --shadow-sm: 0 1px 2px rgb(31 29 26 / 0.05);
@@ -63,13 +67,14 @@
   --sunken: #100f0e;
   --fg: #ebe7e0;
   --muted: #a8a196;
-  --subtle: #7c766c;
+  --subtle: #8a8479;
   --line: #2a2825;
   --line-strong: #3a3733;
   --accent: #a995f0;
   --accent-strong: #c0b1f6;
   --accent-fg: #17131f;
   --warm: #e4b261;
+  --warm-text: #e4b261;
 
   --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
   --mark: color-mix(in oklab, #f2c14e 26%, transparent);
@@ -118,6 +123,8 @@
   --color-accent-soft: var(--accent-soft);
   --color-accent-line: var(--accent-line);
   --color-warm: var(--warm);
+  --color-warm-text: var(--warm-text);
+  --color-ring: var(--ring);
   --color-mark: var(--mark);
   --color-scrim: var(--scrim);
   --shadow-soft: var(--shadow-md);
@@ -170,6 +177,10 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
     border-radius: 6px;
+  }
+  /* programmatic focus targets (main, headings reached from the TOC) are not controls: no ring */
+  [tabindex="-1"]:focus-visible {
+    outline: none;
   }
   /* smooth theme cross-fade on colour properties, disabled for the frame of a switch */
   body,
@@ -526,7 +537,6 @@
       color: var(--muted);
       text-decoration: underline dotted var(--line-strong);
       text-underline-offset: 3px;
-      cursor: help;
     }
 
     /* footnotes */
@@ -543,10 +553,21 @@
       margin-inline-start: 0.1em;
       border-radius: 0.3em;
       background: var(--accent-soft);
+      position: relative;
       &::before {
         content: "[";
         opacity: 0;
         position: absolute;
+      }
+      /* invisible 24px hit area around the tiny visible pill */
+      &::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: max(100%, 24px);
+        height: 24px;
+        translate: -50% -50%;
       }
     }
     & section[data-footnotes] {

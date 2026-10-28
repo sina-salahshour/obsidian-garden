@@ -1,7 +1,8 @@
 // Obsidian-flavoured markdown -> mdast nodes with the hast shapes the UI styles (see README of the
 // content contract in the worker brief):
-//   [[Note|text]]   -> <a href="/posts/<slug>#id" data-wikilink="">text</a>   (unresolved/private: span.wikilink-unresolved)
-//   ![[img.png|300]]-> <img src="/attachments/<vault-relative path>/img.png" alt="" width="300">
+//   [[Note|text]]   -> <a href="/posts/<slug>#id" data-wikilink="">text</a>   (unresolved/private: span.wikilink-unresolved + sr-only " (not published)")
+//   ![[img.png|alt|300x200]] -> <img src="/attachments/<vault-relative path>/img.png" alt="alt" width="300" height="200">
+//   ![[clip.mp4|label]] -> <video src controls aria-label="label"><a href download>Download label</a></video>
 //   ![[Note]]       -> <a href="/posts/<slug>" data-embed="">Title</a>
 //   > [!type]± Title-> <aside data-callout data-callout-fold?><div.callout-title><span.callout-title-text/></div><div.callout-content/></aside>
 //   ```mermaid      -> <figure data-mermaid="src" class="mermaid"><pre><code>src</code></pre></figure>
@@ -128,10 +129,69 @@ function el(
   } as PhrasingContent;
 }
 
+/**
+ * Hast-only children (`data.hChildren`): rendered on the page but invisible to the mdast text
+ * (search index, descriptions), which must not pick up "(not published)" or "Download …".
+ */
+function withHtmlChildren(node: PhrasingContent, children: unknown[]): PhrasingContent {
+  (node.data as Record<string, unknown>).hChildren = children;
+  return node;
+}
+
+function hText(value: string) {
+  return { type: "text", value };
+}
+
+function srOnly(value: string) {
+  return {
+    type: "element",
+    tagName: "span",
+    properties: { className: ["sr-only"] },
+    children: [hText(value)],
+  };
+}
+
 function unresolved(label: string): PhrasingContent {
-  return el("emphasis", "span", { className: ["wikilink-unresolved"], title: "Not published" }, [
-    text(label),
-  ]);
+  const node = el(
+    "emphasis",
+    "span",
+    { className: ["wikilink-unresolved"], title: "Not published" },
+    [text(label)],
+  );
+  // the dotted underline and tooltip are visual only; say it to screen readers too
+  return withHtmlChildren(node, [hText(label), srOnly(" (not published)")]);
+}
+
+const SIZE_RE = /^(\d+)(?:x(\d+))?$/;
+
+/** `alt text|300x200` -> { alt, width, height }: a trailing size segment, the rest is the alt text. */
+export function parseEmbedAlias(alias: string | null): {
+  alt: string;
+  width?: string;
+  height?: string;
+} {
+  if (!alias) return { alt: "" };
+  const parts = alias.split("|");
+  const size = SIZE_RE.exec(parts.at(-1)!.trim());
+  if (!size) return { alt: alias.trim() };
+  return {
+    alt: parts.slice(0, -1).join("|").trim(),
+    width: size[1],
+    ...(size[2] ? { height: size[2] } : {}),
+  };
+}
+
+/** "my_clip-v2.mp4" -> "my clip v2": an accessible name for media without an alias. */
+function humanName(file: string): string {
+  return stripExt(baseOf(file))
+    .replace(/[-_.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripExt(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i <= 0 ? name : name.slice(0, i);
 }
 
 interface Ctx {
@@ -169,14 +229,10 @@ function wikilinkNode(raw: string, embed: boolean, ctx: Ctx): PhrasingContent[] 
     const resolved = resolveAttachment(target, ctx.noteDir, ctx.attachments).path;
     const url = resolved ? attachmentHref(resolved) : attachmentUrl(target);
     if (embed && IMAGE_EXT.has(extension)) {
-      const props: Record<string, unknown> = { src: url, alt: "" };
-      const size = alias && /^(\d+)(?:x(\d+))?$/.exec(alias);
-      if (size) {
-        props.width = size[1];
-        if (size[2]) props.height = size[2];
-      } else if (alias) {
-        props.alt = alias;
-      }
+      const { alt, width, height } = parseEmbedAlias(alias);
+      const props: Record<string, unknown> = { src: url, alt };
+      if (width) props.width = width;
+      if (height) props.height = height;
       return [
         {
           type: "image",
@@ -186,11 +242,26 @@ function wikilinkNode(raw: string, embed: boolean, ctx: Ctx): PhrasingContent[] 
         } as PhrasingContent,
       ];
     }
-    if (embed && AUDIO_EXT.has(extension)) {
-      return [el("emphasis", "audio", { src: url, controls: true, preload: "metadata" }, [])];
-    }
-    if (embed && VIDEO_EXT.has(extension)) {
-      return [el("emphasis", "video", { src: url, controls: true, preload: "metadata" }, [])];
+    if (embed && (AUDIO_EXT.has(extension) || VIDEO_EXT.has(extension))) {
+      const label = alias && !SIZE_RE.test(alias) ? alias : humanName(target);
+      const tag = AUDIO_EXT.has(extension) ? "audio" : "video";
+      const media = el(
+        "emphasis",
+        tag,
+        { src: url, controls: true, preload: "metadata", ariaLabel: label },
+        [],
+      );
+      // the link is the fallback for browsers that cannot play the file
+      return [
+        withHtmlChildren(media, [
+          {
+            type: "element",
+            tagName: "a",
+            properties: { href: url, download: "" },
+            children: [hText(`Download ${label}`)],
+          },
+        ]),
+      ];
     }
     if (embed || FILE_EXT.has(extension) || IMAGE_EXT.has(extension)) {
       return [{ type: "link", url, children: [text(alias ?? baseOf(target))] } as PhrasingContent];

@@ -35,6 +35,13 @@ const siteSchema = z.object({
   keywords: strList,
   twitter: nullableStr,
   blockCrawlers: strList,
+  github: z
+    .string()
+    .regex(/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/)
+    .nullable()
+    .catch(null)
+    .default(null),
+  githubButton: z.enum(["hidden", "icon", "stars"]).catch("icon").default("icon"),
   authors: z
     .array(z.unknown())
     .catch([])

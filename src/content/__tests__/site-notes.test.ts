@@ -4,6 +4,7 @@ import {
   classifyNotes,
   firstParagraph,
   frontmatterAttachments,
+  normalizeGithub,
   normalizeHandle,
   partitionSiteNotes,
   planAttachments,
@@ -51,6 +52,8 @@ describe("site notes", () => {
       keywords: [],
       twitter: null,
       blockCrawlers: [],
+      github: null,
+      githubButton: "icon",
       authors: [],
     });
     expect(warnings).toEqual([]);
@@ -205,9 +208,41 @@ describe("site notes", () => {
       "keywords",
       "twitter",
       "blockCrawlers",
+      "github",
+      "githubButton",
       "authors",
     ]);
     expect(text.endsWith("}\n")).toBe(true);
+  });
+
+  it("github and github-button: normalise, default, warn on invalid", () => {
+    const ok = buildSiteData(
+      [
+        note("_site/S.md", {
+          site: "settings",
+          github: "http://www.github.com/a/b.git/",
+          "github-button": "Stars",
+        }),
+      ],
+      files(),
+    );
+    expect(ok.data).toMatchObject({ github: "https://github.com/a/b", githubButton: "stars" });
+    expect(ok.warnings).toEqual([]);
+    const bad = buildSiteData(
+      [
+        note("_site/S.md", {
+          site: "settings",
+          github: "https://gitlab.com/a/b",
+          "github-button": "big",
+        }),
+      ],
+      files(),
+    );
+    expect(bad.data).toMatchObject({ github: null, githubButton: "icon" });
+    expect(bad.warnings).toHaveLength(2);
+    expect(normalizeGithub("owner/repo")).toBe("https://github.com/owner/repo");
+    expect(normalizeGithub("https://github.com/o/r/tree/main")).toBeNull();
+    expect(normalizeGithub("justone")).toBeNull();
   });
 
   it("helpers", () => {

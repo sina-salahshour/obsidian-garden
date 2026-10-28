@@ -63,9 +63,19 @@ describe("wikilinks", () => {
   });
 
   it("renders unresolved links as a span", async () => {
-    const { html, meta } = await render("[[Missing Note|nope]]");
-    expect(html).toContain('<span class="wikilink-unresolved" title="Not published">nope</span>');
+    const { html, meta, searchText } = await render("[[Missing Note|nope]]");
+    expect(html).toContain(
+      '<span class="wikilink-unresolved" title="Not published">nope<span class="sr-only"> (not published)</span></span>',
+    );
     expect(meta.links).toEqual([]);
+    // the screen-reader suffix stays out of search text and the TOC
+    expect(searchText).toBe("nope");
+  });
+
+  it("keeps the unresolved suffix out of heading text", async () => {
+    const { meta } = await render("## About [[Missing Note|nope]]\n");
+    expect(meta.headings[0]?.text).toBe("About nope");
+    expect(meta.headings[0]?.id).toBe("about-nope");
   });
 
   it("links to a top-level folder note go to /series", async () => {
@@ -76,7 +86,7 @@ describe("wikilinks", () => {
 
   it("public -> private links are unresolved and leak nothing", async () => {
     const { html, meta } = await render("[[Secret Plans|plans]]");
-    expect(html).toContain('<span class="wikilink-unresolved" title="Not published">plans</span>');
+    expect(html).toContain('<span class="wikilink-unresolved" title="Not published">plans<span');
     expect(html).not.toContain("secret-plans");
     expect(meta.links).toEqual([]);
   });
@@ -95,6 +105,27 @@ describe("embeds", () => {
     const { html } = await render("![[diagram.png]]\n\n![[my pic.png|300]]");
     expect(html).toContain('<img src="/attachments/diagram.png" alt=""/>');
     expect(html).toContain('<img src="/attachments/my%20pic.png" alt="" width="300"/>');
+  });
+
+  it("embeds images with alt text, size, or both", async () => {
+    const { html } = await render(
+      "![[a.png|A fiber tree]]\n\n![[b.png|300x200]]\n\n![[c.png|Lanes, bit by bit|300]]\n\n![[d.png|Wide|640x360]]",
+    );
+    expect(html).toContain('<img src="/attachments/a.png" alt="A fiber tree"/>');
+    expect(html).toContain('<img src="/attachments/b.png" alt="" width="300" height="200"/>');
+    expect(html).toContain('<img src="/attachments/c.png" alt="Lanes, bit by bit" width="300"/>');
+    expect(html).toContain('<img src="/attachments/d.png" alt="Wide" width="640" height="360"/>');
+  });
+
+  it("names audio/video embeds and adds a download fallback", async () => {
+    const { html, searchText } = await render("![[my_clip-v2.mp4]]\n\n![[talk.mp3|The talk]]");
+    expect(html).toContain(
+      '<video src="/attachments/my_clip-v2.mp4" controls="" preload="metadata" aria-label="my clip v2"><a href="/attachments/my_clip-v2.mp4" download="">Download my clip v2</a></video>',
+    );
+    expect(html).toContain(
+      'aria-label="The talk"><a href="/attachments/talk.mp3" download="">Download The talk</a></audio>',
+    );
+    expect(searchText).not.toContain("Download");
   });
 
   it("resolves embeds to their vault-relative attachment path", async () => {

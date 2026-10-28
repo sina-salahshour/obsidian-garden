@@ -162,6 +162,8 @@ export interface SiteAuthor {
   jobTitle: string | null;
 }
 
+export type GithubButton = "hidden" | "icon" | "stars";
+
 /** Site-wide settings aggregated from the vault's `site:` notes by the sync (content/site.json). */
 export interface SiteData {
   title: string;
@@ -177,6 +179,10 @@ export interface SiteData {
   twitter: string | null;
   /** user-agent names disallowed in robots.txt */
   blockCrawlers: string[];
+  /** GitHub repo URL "https://github.com/owner/repo"; null when unset */
+  github: string | null;
+  /** header GitHub button variant (default "icon") */
+  githubButton: GithubButton;
   /** default author FIRST; [] when the vault has no author notes */
   authors: SiteAuthor[];
 }

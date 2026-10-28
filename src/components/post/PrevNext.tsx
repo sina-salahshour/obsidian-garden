@@ -19,8 +19,16 @@ export function PrevNext({
   className?: string;
 }) {
   if (!prev && !next) return null;
+  // Neighbours are series parts (same folder, numbered) or, for loose notes, the date order.
+  const neighbours = [prev, next].filter((p): p is PostMeta => p !== null);
+  const inSeries = neighbours.every(
+    (p) => p.folder !== null && p.order !== null && p.folder === neighbours[0]!.folder,
+  );
   return (
-    <nav aria-label="Series navigation" className={cn("grid gap-3 sm:grid-cols-2", className)}>
+    <nav
+      aria-label={inSeries ? "Series navigation" : "Post navigation"}
+      className={cn("grid gap-3 sm:grid-cols-2", className)}
+    >
       {prev ? <Card post={prev} dir="prev" /> : <span className="max-sm:hidden" />}
       {next && <Card post={next} dir="next" />}
     </nav>

@@ -104,7 +104,6 @@ export interface ArticleInput {
   inLanguage: string;
   /** folder slug when the note is part of a course */
   courseSlug?: string | null;
-  position?: number | null;
   level?: PostMeta["level"];
 }
 
@@ -127,8 +126,8 @@ export function articleNode(origin: string, a: ArticleInput): JsonLdNode {
     url,
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     isPartOf: a.courseSlug ? ref(ids.course(origin, a.courseSlug)) : ref(ids.website(origin)),
-    position: a.courseSlug ? a.position : null,
-    proficiencyLevel: a.level ? capitalize(a.level) : null,
+    // proficiencyLevel is a TechArticle property; other article types do not define it
+    proficiencyLevel: a.type === "TechArticle" && a.level ? capitalize(a.level) : null,
   });
 }
 
@@ -167,11 +166,11 @@ export function courseNode(origin: string, c: CourseInput): JsonLdNode {
       courseMode: "Online",
       courseWorkload: minutesDuration(c.totalMinutes),
     },
-    hasPart: c.parts.map((p, i) => ({
+    // in reading order; `position` is a ListItem property, so the order is carried by the array alone
+    hasPart: c.parts.map((p) => ({
       "@type": "TechArticle",
       name: p.title,
       url: absUrl(origin, `/posts/${p.slug}`),
-      position: i + 1,
     })),
   });
 }

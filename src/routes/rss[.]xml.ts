@@ -1,4 +1,5 @@
-// RSS 2.0 feed: the 20 newest public notes (folder/course notes excluded). Absolute URLs.
+// RSS 2.0 feed: the 20 newest public notes (folder notes excluded). Absolute URLs. Like the sitemap, it
+// leaves out noindex notes and cross-posts whose `canonical` lives elsewhere.
 // Each item names its resolved authors (<dc:creator>); the channel carries the site image when set.
 import { createFileRoute } from "@tanstack/react-router";
 import { indexFor } from "../content/posts.server.ts";
@@ -13,7 +14,10 @@ export const Route = createFileRoute("/rss.xml")({
         const origin = resolveSiteUrl(request);
         // Feeds are public and cached by CDNs: always the anonymous view.
         const index = indexFor({ isAdmin: false });
-        const posts = index.list({ sort: "newest", pageSize: 20 }).posts;
+        // index.all is newest first, the same order as list({ sort: "newest" })
+        const posts = index.all
+          .filter((m) => !m.isFolderNote && !m.noindex && !m.canonical)
+          .slice(0, 20);
         const folderAuthors = new Map(index.folders().map((f) => [f.folder, f.authors]));
         const abs = (path: string) => (/^https?:\/\//.test(path) ? path : `${origin}${path}`);
         const items = posts

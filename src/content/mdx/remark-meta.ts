@@ -7,7 +7,6 @@
 // Reading time: prose words at 230 wpm plus fenced-code words at half weight (code is skimmed, not
 // read word by word); mermaid sources are not counted. wordCount counts prose only. Min 1 minute.
 import { statSync } from "node:fs";
-import { toString as hastToString } from "hast-util-to-string";
 import type { Element, Root as HastRoot } from "hast";
 import type { Blockquote, Nodes, Paragraph, Root, RootContent } from "mdast";
 import { toString as mdastToString } from "mdast-util-to-string";
@@ -26,6 +25,7 @@ import {
 import { slugifyPath } from "../slug.ts";
 import type { Catalog } from "./catalog.ts";
 import { toStringList } from "./catalog.ts";
+import { visibleText } from "./rehype-slug.ts";
 import { exportConst } from "./estree.ts";
 import type { ObsidianData } from "./remark-obsidian.ts";
 import type { EsProgram, FileLike } from "./unified-types.ts";
@@ -378,7 +378,7 @@ export function rehypeMeta(options: RehypeMetaOptions = {}) {
       if (!m) return;
       const id = node.properties?.id;
       if (typeof id !== "string" || id === FOOTNOTE_LABEL) return;
-      headings.push({ depth: Number(m[1]) as 2 | 3 | 4, text: hastToString(node).trim(), id });
+      headings.push({ depth: Number(m[1]) as 2 | 3 | 4, text: visibleText(node).trim(), id });
     });
     meta.headings = headings;
     const body: EsProgram["body"] = [

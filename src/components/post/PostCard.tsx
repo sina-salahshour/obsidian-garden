@@ -120,7 +120,9 @@ export function PostRow({
           {eyebrow ?? (
             <>
               <time dateTime={isoDate(post.date)}>{formatDate(post.date)}</time>
-              <span className="text-subtle">·</span>
+              <span aria-hidden="true" className="text-subtle">
+                ·
+              </span>
               <span>{formatReading(post.readingMinutes)}</span>
             </>
           )}

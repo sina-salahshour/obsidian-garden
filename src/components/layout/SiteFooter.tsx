@@ -12,7 +12,9 @@ export function SiteFooter() {
           <Logo className="size-6" />
           <p>
             <span className="font-serif text-base text-fg">{site.title}</span>
-            <span className="mx-2 text-subtle">·</span>
+            <span aria-hidden="true" className="mx-2 text-subtle">
+              ·
+            </span>
             Written in Obsidian by {site.author}
           </p>
         </div>

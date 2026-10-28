@@ -31,6 +31,17 @@ describe("site.config", () => {
     ).toMatchObject({ title: "T", keywords: [], authors: [{ id: "x", name: "X", sameAs: [] }] });
   });
 
+  it("github settings: defaults for old json, accepts only normalised urls", () => {
+    expect(parseSiteData({ title: "T" })).toMatchObject({ github: null, githubButton: "icon" });
+    expect(
+      parseSiteData({ github: "https://github.com/a/b", githubButton: "stars" }),
+    ).toMatchObject({ github: "https://github.com/a/b", githubButton: "stars" });
+    expect(parseSiteData({ github: "a/b", githubButton: "huge" })).toMatchObject({
+      github: null,
+      githubButton: "icon",
+    });
+  });
+
   it("falls back to an author named after the site", () => {
     const s = createSite(parseSiteData({ title: "My Garden" }));
     expect(s.author).toBe("My Garden");

@@ -77,6 +77,8 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
   const dq = useDebounced(q.trim(), 110);
   const [hits, setHits] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
+  // the query `hits` belong to; until it matches `dq` the results are still pending
+  const [resultsFor, setResultsFor] = useState("");
   const [active, setActive] = useState(0);
   const listId = useId();
   const listRef = useRef<HTMLUListElement>(null);
@@ -94,9 +96,14 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
       .then((res) => {
         if (id !== req.current) return;
         setHits(res.map((hit) => ({ kind: "hit", hit })));
+        setResultsFor(dq);
         setActive(0);
       })
-      .catch(() => id === req.current && setHits([]))
+      .catch(() => {
+        if (id !== req.current) return;
+        setHits([]);
+        setResultsFor(dq);
+      })
       .finally(() => id === req.current && setLoading(false));
   }, [dq, search]);
 
@@ -172,6 +179,15 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
   };
 
   const optionId = (i: number) => `${listId}-opt-${i}`;
+  const settled = !!dq && !loading && resultsFor === dq;
+  const hasList = items.length > 0;
+  const status = !dq
+    ? ""
+    : !settled
+      ? "Searching…"
+      : hits.length === 0
+        ? "No results"
+        : `${hits.length} ${hits.length === 1 ? "result" : "results"}`;
 
   return (
     <motion.div
@@ -181,7 +197,8 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
       exit="exit"
       className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh-8rem))] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-lg)]"
     >
-      <div className="flex items-center gap-3 border-b border-line px-4">
+      {/* the row's accent underline (has-[input:focus]) is the input's focus indicator */}
+      <div className="flex items-center gap-3 border-b border-line px-4 transition-shadow has-[input:focus]:shadow-[inset_0_-2px_0_var(--ring)]">
         <SearchIcon size={18} className="shrink-0 text-subtle" />
         <input
           autoFocus
@@ -194,8 +211,8 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
           placeholder="Search notes…"
           aria-label="Search notes"
           role="combobox"
-          aria-expanded="true"
-          aria-controls={listId}
+          aria-expanded={hasList}
+          aria-controls={hasList ? listId : undefined}
           aria-autocomplete="list"
           aria-activedescendant={items.length ? optionId(activeIndex) : undefined}
           spellCheck={false}
@@ -218,14 +235,22 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
             />
           )}
         </AnimatePresence>
-        <button type="button" onClick={onClose} className="shrink-0" aria-label="Close search">
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex min-h-6 min-w-6 shrink-0 items-center justify-center rounded-md"
+          aria-label="Close search"
+        >
           <Kbd>Esc</Kbd>
         </button>
       </div>
 
       <div className="scrollbar-thin flex-1 overflow-y-auto overscroll-contain p-2">
         {!dq && <p className="px-3 pt-2 pb-1.5 text-xs font-medium text-subtle">Jump to</p>}
-        {dq && !loading && hits.length === 0 && (
+        <p role="status" aria-live="polite" className="sr-only">
+          {status}
+        </p>
+        {settled && hits.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -236,66 +261,73 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
             <span className="text-subtle">Try fewer or different words.</span>
           </motion.div>
         )}
-        <ul
-          ref={listRef}
-          id={listId}
-          role="listbox"
-          aria-label="Results"
-          className="relative isolate"
-        >
-          <AnimatePresence initial={false} mode="popLayout">
-            {items.map((item, i) => {
-              const isActive = i === activeIndex;
-              const key = item.kind === "hit" ? item.hit.slug : item.id;
-              return (
-                <motion.li
-                  key={key}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: { delay: Math.min(i, 8) * 0.02 } }}
-                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                  id={optionId(i)}
-                  data-index={i}
-                  role="option"
-                  aria-selected={isActive}
-                  onPointerMove={() => !isActive && setActive(i)}
-                  onClick={() => openItem(item)}
-                  className="relative cursor-pointer rounded-xl"
-                >
-                  {isActive && (
-                    <motion.span
-                      layoutId="palette-active"
-                      transition={spring.layout}
-                      className="absolute inset-0 z-0 rounded-xl bg-sunken"
-                      aria-hidden="true"
-                    />
-                  )}
-                  {item.kind === "hit" ? (
-                    <HitRow hit={item.hit} q={dq} active={isActive} />
-                  ) : (
-                    <LinkRow item={item} active={isActive} />
-                  )}
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </ul>
+        {hasList && (
+          <ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            aria-label="Results"
+            className="relative isolate"
+          >
+            <AnimatePresence initial={false} mode="popLayout">
+              {items.map((item, i) => {
+                const isActive = i === activeIndex;
+                const key = item.kind === "hit" ? item.hit.slug : item.id;
+                return (
+                  <motion.li
+                    key={key}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, transition: { delay: Math.min(i, 8) * 0.02 } }}
+                    exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                    id={optionId(i)}
+                    data-index={i}
+                    role="option"
+                    aria-selected={isActive}
+                    onPointerMove={() => !isActive && setActive(i)}
+                    onClick={() => openItem(item)}
+                    className="relative cursor-pointer rounded-xl"
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="palette-active"
+                        transition={spring.layout}
+                        className="absolute inset-0 z-0 rounded-xl bg-sunken"
+                        aria-hidden="true"
+                      />
+                    )}
+                    {item.kind === "hit" ? (
+                      <HitRow hit={item.hit} q={dq} active={isActive} />
+                    ) : (
+                      <LinkRow item={item} active={isActive} />
+                    )}
+                  </motion.li>
+                );
+              })}
+            </AnimatePresence>
+          </ul>
+        )}
       </div>
 
-      <div className="hidden items-center gap-4 border-t border-line px-4 py-2.5 text-xs text-subtle sm:flex">
-        <span className="flex items-center gap-1.5">
+      <div
+        className={cn(
+          "items-center gap-4 border-t border-line px-4 py-1 text-xs text-subtle sm:py-2.5",
+          dq ? "flex" : "hidden sm:flex",
+        )}
+      >
+        <span className="hidden items-center gap-1.5 sm:flex">
           <Kbd>↑</Kbd>
           <Kbd>↓</Kbd> navigate
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="hidden items-center gap-1.5 sm:flex">
           <Kbd>↵</Kbd> open
         </span>
         {dq && (
           <button
             type="button"
             onClick={() => go(() => void navigate({ to: "/search", search: { q: dq } }))}
-            className="ml-auto flex items-center gap-1.5 hover:text-fg"
+            className="-mr-2 ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-md px-2 transition-colors hover:text-fg sm:-my-1 sm:min-h-7"
           >
-            All results <Kbd>⌘↵</Kbd>
+            All results <Kbd className="hidden sm:inline-flex">⌘↵</Kbd>
           </button>
         )}
       </div>

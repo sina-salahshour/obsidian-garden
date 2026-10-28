@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "~/lib/cn";
 import { useInView } from "~/lib/hooks";
 import { renderMermaid } from "~/lib/mermaid";
@@ -8,6 +8,7 @@ import { usePanZoom } from "~/lib/panzoom";
 import { useTheme } from "~/lib/theme";
 import { AlertTriangle, Close, Expand, Minus, Plus, Reset } from "../ui/icons";
 import { Overlay, overlayButton } from "../ui/Overlay";
+import { mermaidA11y } from "./mermaid-a11y";
 
 type Props = React.ComponentProps<"figure"> & { "data-mermaid"?: string };
 
@@ -29,14 +30,24 @@ function naturalWidth(svg: string): number | null {
  * Client-rendered Mermaid diagram. SSR emits a sized shimmer plus the hidden source; once
  * the figure nears the viewport, mermaid is imported, rendered with the site's tokens and
  * faded in. Re-renders on theme change (keeping the old diagram up until the new is ready).
+ * The figure is named by the source's `accTitle` (else its type) and described by `accDescr`;
+ * screen readers also get the diagram source as text, since the SVG itself is not navigable.
  */
-export function Mermaid({ "data-mermaid": source = "", children, className, ...rest }: Props) {
+export function Mermaid({
+  "data-mermaid": source = "",
+  children: _fallback,
+  className,
+  ...rest
+}: Props) {
   const [ref, inView] = useInView<HTMLElement>("400px");
   const { theme } = useTheme();
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const scroller = useRef<HTMLButtonElement>(null);
+  const { title, description } = useMemo(() => mermaidA11y(source), [source]);
+  const titleId = useId();
+  const descId = useId();
 
   // wide diagrams scroll horizontally: start centred on the diagram, not at its left edge
   useEffect(() => {
@@ -73,9 +84,20 @@ export function Mermaid({ "data-mermaid": source = "", children, className, ...r
         className,
       )}
       data-mermaid-state={error ? "error" : svg ? "ready" : "pending"}
+      aria-labelledby={titleId}
+      aria-describedby={description ? descId : undefined}
+      aria-busy={!svg && !error ? true : undefined}
     >
-      {/* no-JS / pre-render fallback: the diagram source (hidden; shown only on error below) */}
-      <div hidden>{children}</div>
+      {/* text alternative: name, description and the source (the error view below shows it visibly) */}
+      <figcaption className="sr-only">
+        <span id={titleId}>{title}</span>
+        {description && <span id={descId}>. {description}</span>}
+      </figcaption>
+      {/* plain text, not `children`: those compile through the CodeBlock override (a focusable copy button) */}
+      <div className="sr-only" hidden={!!error}>
+        <p>Diagram source:</p>
+        <pre>{source.replaceAll("#59;", ";")}</pre>
+      </div>
 
       {error ? (
         <div className="p-4 sm:p-5">
@@ -96,8 +118,7 @@ export function Mermaid({ "data-mermaid": source = "", children, className, ...r
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
                 className="absolute inset-3 skeleton rounded-xl"
-                role="status"
-                aria-label="Rendering diagram"
+                aria-hidden="true"
               />
             )}
           </AnimatePresence>
@@ -106,7 +127,7 @@ export function Mermaid({ "data-mermaid": source = "", children, className, ...r
               ref={scroller}
               type="button"
               onClick={() => setOpen(true)}
-              aria-label="Open diagram fullscreen"
+              aria-label={`Open diagram fullscreen: ${title}`}
               initial={{ opacity: 0, scale: 0.985 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, ease: ease.out }}
@@ -129,23 +150,34 @@ export function Mermaid({ "data-mermaid": source = "", children, className, ...r
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Expand diagram"
+          aria-label={`Expand diagram: ${title}`}
           className="absolute top-2.5 right-2.5 inline-flex size-9 items-center justify-center rounded-full border border-line bg-surface/90 text-muted opacity-100 shadow-[var(--shadow-sm)] backdrop-blur transition-[opacity,color] hover:text-fg sm:opacity-0 sm:group-hover/mmd:opacity-100 sm:focus-visible:opacity-100"
         >
           <Expand size={15} />
         </button>
       )}
 
-      <Overlay open={open} onClose={() => setOpen(false)} label="Diagram viewer">
-        {svg && <DiagramViewer svg={svg} onClose={() => setOpen(false)} />}
+      <Overlay open={open} onClose={() => setOpen(false)} label={`Diagram viewer: ${title}`}>
+        {svg && <DiagramViewer svg={svg} title={title} onClose={() => setOpen(false)} />}
       </Overlay>
     </figure>
   );
 }
 
-function DiagramViewer({ svg, onClose }: { svg: string; onClose: () => void }) {
+function DiagramViewer({
+  svg,
+  title,
+  onClose,
+}: {
+  svg: string;
+  title: string;
+  onClose: () => void;
+}) {
   const viewport = useRef<HTMLDivElement>(null);
   const pz = usePanZoom(viewport);
+  const hintId = useId();
+  // the hint speaks the input method in use: keyboard once the viewport has keyboard focus
+  const [keyboard, setKeyboard] = useState(false);
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
@@ -157,7 +189,20 @@ function DiagramViewer({ svg, onClose }: { svg: string; onClose: () => void }) {
       <div
         ref={viewport}
         {...pz.bind}
-        className="relative flex-1 cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
+        tabIndex={0}
+        role="group"
+        aria-label={title}
+        aria-describedby={hintId}
+        onFocus={(e) => setKeyboard(e.currentTarget.matches(":focus-visible"))}
+        onKeyDown={(e) => {
+          setKeyboard(true);
+          pz.bind.onKeyDown(e);
+        }}
+        onPointerDown={(e) => {
+          setKeyboard(false);
+          pz.bind.onPointerDown(e);
+        }}
+        className="relative flex-1 cursor-grab touch-none overflow-hidden rounded-2xl select-none focus-visible:-outline-offset-4 active:cursor-grabbing"
       >
         <motion.div
           style={{ x: pz.x, y: pz.y, scale: pz.scale, transformOrigin: "0 0" }}
@@ -192,9 +237,27 @@ function DiagramViewer({ svg, onClose }: { svg: string; onClose: () => void }) {
           </ToolButton>
         </div>
       </div>
-      <p className="pointer-events-none absolute bottom-5 left-5 hidden text-xs text-subtle sm:block">
-        Drag to pan · scroll or pinch to zoom · double-click to zoom in
+      <p id={hintId} className="sr-only">
+        Arrow keys pan, plus and minus zoom, 0 resets the view.
       </p>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-5 left-5 hidden text-xs text-subtle sm:block"
+      >
+        <AnimatePresence initial={false} mode="wait">
+          <motion.p
+            key={keyboard ? "k" : "p"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+          >
+            {keyboard
+              ? "Arrow keys to pan · + / − to zoom · 0 to reset"
+              : "Drag to pan · scroll or pinch to zoom · double-click to zoom in"}
+          </motion.p>
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 }

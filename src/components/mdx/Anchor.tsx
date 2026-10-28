@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "~/lib/cn";
 import { ArrowUpRight } from "../ui/icons";
+import { InLink } from "./link-context";
 
 type Props = React.ComponentProps<"a"> & {
   "data-wikilink"?: string | boolean;
@@ -10,14 +11,25 @@ type Props = React.ComponentProps<"a"> & {
 
 const FILE_EXT = /\.[a-z0-9]{2,5}$/i;
 
+// The 1px rule is the link cue (the text itself stays --fg), so it is drawn in --accent, which holds
+// >= 3:1 against the page in both themes; on hover it thickens to 2px in --accent-strong.
 const wikiClass =
-  "wikilink font-medium text-fg no-underline decoration-transparent bg-[linear-gradient(var(--accent-line),var(--accent-line))] bg-[length:100%_1px] bg-[position:0_100%] bg-no-repeat transition-[background-size,color,background-color] duration-300 hover:text-accent-strong hover:bg-[length:100%_2px] rounded-[2px]";
+  "wikilink font-medium text-fg no-underline decoration-transparent bg-[linear-gradient(var(--accent),var(--accent))] bg-[length:100%_1px] bg-[position:0_100%] bg-no-repeat transition-[background-size,color,background-color] duration-300 hover:text-accent-strong hover:bg-[linear-gradient(var(--accent-strong),var(--accent-strong))] hover:bg-[length:100%_2px] rounded-[2px]";
 
 /**
  * Body links. Internal routes become client-side <Link>s (preloaded on intent), wikilinks
  * get their own quiet underline, external links open in a new tab with a small ↗.
+ * Descendants know they sit inside a link (an image there must not become a zoom button).
  */
-export function Anchor({ href = "", children, className, ...rest }: Props) {
+export function Anchor(props: Props) {
+  return (
+    <InLink value={true}>
+      <AnchorInner {...props} />
+    </InLink>
+  );
+}
+
+function AnchorInner({ href = "", children, className, ...rest }: Props) {
   const wiki = rest["data-wikilink"] !== undefined;
   const cls = cn(wiki && wikiClass, className);
 

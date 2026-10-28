@@ -41,21 +41,29 @@ export const Route = createFileRoute("/posts/")({
   pendingMs: 500,
   pendingMinMs: 250,
   pendingComponent: () => (
-    <main className="container-page py-12">
+    <main id="main" tabIndex={-1} className="container-page py-12 outline-none">
       <PostListSkeleton />
     </main>
   ),
-  head: ({ matches, match }) => {
+  head: ({ matches, match, loaderData }) => {
     const siteUrl = siteUrlFrom(matches);
-    const tag = match.search.tag;
-    const title = tag ? `#${tag}` : "All posts";
-    const description = tag ? `Notes tagged #${tag}.` : site.description;
+    const { folder, sort, page } = match.search;
+    const tag = match.search.tag?.toLowerCase().replace(/^#/, "") || undefined;
+    const base = tag ? `#${tag}` : "All posts";
+    const title = page > 1 ? `${base} (page ${page})` : base;
+    const description = tag ? `Notes tagged #${tag}.` : "Every note in the garden, newest first.";
     const path = tag ? `/posts?tag=${encodeURIComponent(tag)}` : "/posts";
+    // Only the first page of the plain list and of each known tag is indexable; pages, folder filters and
+    // other sorts are views of the same notes (still followed), and an unknown tag is an empty page.
+    const noindex = page > 1 || !!folder || sort !== defaults.sort || loaderData?.list.total === 0;
+    // Later pages are canonical to themselves (pointing them at page 1 would contradict noindex).
+    const canonical = page > 1 ? `${path}${tag ? "&" : "?"}page=${page}` : path;
     return seo({
       siteUrl,
       title,
       description,
-      path,
+      path: canonical,
+      noindex,
       schema: (origin) => {
         const crumbs = breadcrumbNode(origin, path, [
           { name: "Home", path: "/" },

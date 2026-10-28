@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import { HeadContent, Outlet, Scripts, createRootRoute, useMatches } from "@tanstack/react-router";
 import { MotionConfig } from "motion/react";
 import type { ReactNode } from "react";
 import { BackToTop } from "~/components/layout/BackToTop";
@@ -8,7 +8,7 @@ import { SiteHeader } from "~/components/layout/SiteHeader";
 import { CommandPalette, type SearchFn } from "~/components/search/CommandPalette";
 import { ErrorView, NotFound } from "~/components/ui/States";
 import { getSiteUrl, searchPosts } from "~/content/functions";
-import { seo } from "~/lib/seo";
+import { repeatedMetaExtras, seo } from "~/lib/seo";
 import { THEME_COLORS, themeScript } from "~/lib/theme";
 import { site } from "~/site.config";
 import appCss from "~/styles/app.css?url";
@@ -19,28 +19,35 @@ export const Route = createRootRoute({
   // The absolute origin is resolved once on the server and reused by every route's head() for canonical/og URLs.
   loader: async () => ({ siteUrl: await getSiteUrl() }),
   staleTime: Infinity,
-  head: ({ loaderData }) => {
+  head: ({ loaderData, match }) => {
     // Site-wide defaults only: every child head() overrides these by name/property. JSON-LD (scripts) is
     // emitted by the leaf route alone so each page carries exactly one @graph.
-    const base = seo({ siteUrl: loaderData?.siteUrl });
+    // An unmatched URL (or a notFound() no child boundary catches) lands on the root boundary, and an error
+    // the root errorComponent renders: neither may be indexed or carry the site title. (Child routes that
+    // handle their own notFound set their own noindex head.)
+    const failure = match._notFound
+      ? "Page not found"
+      : match.status === "error"
+        ? "Something went wrong"
+        : undefined;
+    const base = seo({ siteUrl: loaderData?.siteUrl, title: failure, noindex: !!failure });
     return {
       meta: [
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         { name: "color-scheme", content: "light dark" },
-        {
-          name: "theme-color",
-          media: "(prefers-color-scheme: light)",
-          content: THEME_COLORS.light,
-        },
-        { name: "theme-color", media: "(prefers-color-scheme: dark)", content: THEME_COLORS.dark },
+        // theme-color is rendered in RootDocument: head meta is deduped by name, so the pair would collapse.
         { property: "og:site_name", content: site.title },
         { name: "author", content: site.author },
-        ...base.meta,
+        // og:image size/type describe one specific image: leave them to the page's own seo() so a page with
+        // its own image never inherits the default card's dimensions through the per-property merge.
+        ...base.meta.filter((m) => !/^og:image:(?:width|height|type)$/.test(m.property ?? "")),
       ],
       links: [
         { rel: "stylesheet", href: appCss },
+        { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+        { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
         { rel: "manifest", href: "/manifest.webmanifest" },
         { rel: "alternate", type: "application/rss+xml", title: site.title, href: "/rss.xml" },
       ],
@@ -75,7 +82,15 @@ function RootDocument({ children }: { children: ReactNode }) {
             />
           </>
         )}
+        {/* two theme-colors (one per scheme): written here because head() meta keeps one per name */}
+        <meta
+          name="theme-color"
+          media="(prefers-color-scheme: light)"
+          content={THEME_COLORS.light}
+        />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content={THEME_COLORS.dark} />
         <HeadContent />
+        <RepeatedMeta />
       </head>
       <body>
         {gtmId && (
@@ -102,6 +117,16 @@ function RootDocument({ children }: { children: ReactNode }) {
       </body>
     </html>
   );
+}
+
+/** The repeated Open Graph values (every article:tag, ...) that HeadContent's per-property dedupe drops. */
+function RepeatedMeta() {
+  const extras = useMatches({
+    select: (matches) => repeatedMetaExtras(matches.map((m) => m.meta)),
+  });
+  return extras.map((m) => (
+    <meta key={`${m.property}:${m.content}`} property={m.property} content={m.content} />
+  ));
 }
 
 function RootLayout() {

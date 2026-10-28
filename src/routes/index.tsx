@@ -35,7 +35,7 @@ export const Route = createFileRoute("/")({
     return seo({ siteUrl, path: "/" });
   },
   pendingComponent: () => (
-    <main className="container-page py-16">
+    <main id="main" tabIndex={-1} className="container-page py-16 outline-none">
       <PostListSkeleton count={3} />
     </main>
   ),

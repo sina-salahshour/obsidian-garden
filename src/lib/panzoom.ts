@@ -7,6 +7,8 @@ export interface PanZoom {
   y: MotionValue<number>;
   scale: MotionValue<number>;
   zoomBy: (factor: number) => void;
+  /** Move the content by (dx, dy) px, smoothly. */
+  panBy: (dx: number, dy: number) => void;
   reset: () => void;
   bind: {
     onPointerDown: (e: React.PointerEvent) => void;
@@ -14,12 +16,14 @@ export interface PanZoom {
     onPointerUp: (e: React.PointerEvent) => void;
     onPointerCancel: (e: React.PointerEvent) => void;
     onDoubleClick: (e: React.MouseEvent) => void;
+    onKeyDown: (e: React.KeyboardEvent) => void;
   };
 }
 
 /**
- * Pan (drag), zoom (wheel / trackpad pinch / two-finger pinch / double-click) for a viewport
- * element. Transform-origin of the content must be "0 0".
+ * Pan (drag, arrow keys), zoom (wheel / trackpad pinch / two-finger pinch / double-click / + and -)
+ * for a viewport element; 0 resets. Transform-origin of the content must be "0 0". The viewport
+ * needs `tabIndex={0}` for the keyboard bindings.
  */
 export function usePanZoom(
   viewport: React.RefObject<HTMLElement | null>,
@@ -118,19 +122,51 @@ export function usePanZoom(
     zoomAt(e.clientX - r.left, e.clientY - r.top, e.shiftKey ? 1 / 1.8 : 1.8, true);
   };
 
+  const zoomBy = (factor: number) => {
+    const { cx, cy } = center();
+    zoomAt(cx, cy, factor, true);
+  };
+  const panBy = (dx: number, dy: number) => {
+    animate(x, x.get() + dx, spring.snappy);
+    animate(y, y.get() + dy, spring.snappy);
+  };
+  const reset = () => {
+    animate(scale, 1, spring.panel);
+    animate(x, 0, spring.panel);
+    animate(y, 0, spring.panel);
+  };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const step = e.shiftKey ? 240 : 80;
+    const moves: Record<string, [number, number]> = {
+      ArrowLeft: [step, 0],
+      ArrowRight: [-step, 0],
+      ArrowUp: [0, step],
+      ArrowDown: [0, -step],
+    };
+    const move = moves[e.key];
+    if (move) panBy(...move);
+    else if (e.key === "+" || e.key === "=") zoomBy(1.4);
+    else if (e.key === "-" || e.key === "_") zoomBy(1 / 1.4);
+    else if (e.key === "0") reset();
+    else return;
+    e.preventDefault();
+  };
+
   return {
     x,
     y,
     scale,
-    zoomBy: (factor) => {
-      const { cx, cy } = center();
-      zoomAt(cx, cy, factor, true);
+    zoomBy,
+    panBy,
+    reset,
+    bind: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp: end,
+      onPointerCancel: end,
+      onDoubleClick,
+      onKeyDown,
     },
-    reset: () => {
-      animate(scale, 1, spring.panel);
-      animate(x, 0, spring.panel);
-      animate(y, 0, spring.panel);
-    },
-    bind: { onPointerDown, onPointerMove, onPointerUp: end, onPointerCancel: end, onDoubleClick },
   };
 }

@@ -49,7 +49,8 @@ export function SeriesProgress({
               title={p.title}
               aria-label={`Part ${i + 1}: ${p.title}`}
               aria-current={i === index ? "page" : undefined}
-              className="group relative block py-1.5"
+              /* 24px tall hit target around the 6px bar; the negative margin keeps the layout */
+              className="group relative -my-[3px] block py-[9px]"
             >
               <span
                 className={cn(
@@ -65,7 +66,7 @@ export function SeriesProgress({
                 <motion.span
                   layoutId="series-progress-current"
                   transition={spring.layout}
-                  className="absolute inset-x-0 top-1.5 h-1.5 rounded-full bg-accent"
+                  className="absolute inset-x-0 top-[9px] h-1.5 rounded-full bg-accent"
                 />
               )}
             </Link>

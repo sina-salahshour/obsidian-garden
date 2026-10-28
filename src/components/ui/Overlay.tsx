@@ -27,6 +27,12 @@ export function Overlay({
   useScrollLock(open);
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
+  // callers pass a fresh `onClose` each render; read it through a ref so the effect below runs only
+  // when `open` flips (re-running it would steal focus back to the first control on every render)
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -44,7 +50,7 @@ export function Overlay({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
       } else if (e.key === "Tab") {
         const els = focusables();
         if (!els.length) return;
@@ -64,7 +70,7 @@ export function Overlay({
       window.removeEventListener("keydown", onKey, true);
       (opener.current as HTMLElement | null)?.focus?.({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (typeof document === "undefined") return null;
   return createPortal(

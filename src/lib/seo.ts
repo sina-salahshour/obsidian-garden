@@ -42,6 +42,49 @@ export function pageTitle(title?: string) {
 const isSvg = (src: string) => /\.svg(?:[?#]|$)/i.test(src);
 
 /**
+ * Size of the site-wide social cards (`/og.png` and the site note's `socialImage`): both are made at
+ * 1200x630. Per-post images have no known size, so og:image:width/height are only sent for these.
+ */
+const DEFAULT_IMAGE = { width: "1200", height: "630" };
+const IMAGE_TYPES: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+
+/**
+ * Open Graph properties that legitimately repeat (one tag per value). TanStack's head dedupes meta by
+ * name/property and keeps only the last value, so `<RepeatedMeta>` in the root document renders the others.
+ */
+export const REPEATED_META = new Set(["article:tag", "article:author"]);
+
+/**
+ * The repeated meta entries HeadContent drops: for each property in REPEATED_META, every value of the deepest
+ * match that sets it except its last (HeadContent keeps that one). `metas` is ordered root to leaf.
+ */
+export function repeatedMetaExtras(
+  metas: readonly (readonly (object | undefined)[] | undefined)[],
+): Meta[] {
+  const out: Meta[] = [];
+  for (const property of REPEATED_META) {
+    for (let i = metas.length - 1; i >= 0; i--) {
+      const values = (metas[i] ?? []).filter(
+        (m): m is Meta =>
+          !!m &&
+          (m as Partial<Meta>).property === property &&
+          typeof (m as Partial<Meta>).content === "string",
+      );
+      if (!values.length) continue;
+      out.push(...values.slice(0, -1));
+      break;
+    }
+  }
+  return out;
+}
+
+/**
  * The social card image: the first raster candidate (SVG never renders in link previews), else the
  * site default image, else /og.png. Pass candidates in priority order: socialImage, then cover.
  */
@@ -54,6 +97,19 @@ export function socialImage(...candidates: (string | null | undefined)[]): strin
 export function ogLocale(locale: string) {
   const l = locale.replace("-", "_");
   return l === "en" ? "en_US" : l;
+}
+
+/** og:image:type always when the extension says it; width/height only for the site-wide cards. */
+function imageDetails(path: string): Meta[] {
+  const ext = /\.([a-z0-9]+)(?:[?#]|$)/i.exec(path)?.[1]?.toLowerCase();
+  const type = ext ? IMAGE_TYPES[ext] : undefined;
+  const out: Meta[] = type ? [{ property: "og:image:type", content: type }] : [];
+  if (path === "/og.png" || path === site.image)
+    out.push(
+      { property: "og:image:width", content: DEFAULT_IMAGE.width },
+      { property: "og:image:height", content: DEFAULT_IMAGE.height },
+    );
+  return out;
 }
 
 /** meta + links + JSON-LD scripts for a route's head(). */
@@ -77,6 +133,7 @@ export function seo(input: SeoInput): {
     { property: "og:type", content: input.type ?? "website" },
     { property: "og:locale", content: ogLocale(site.locale) },
     { property: "og:image", content: image },
+    ...imageDetails(imagePath),
     { property: "og:image:alt", content: input.imageAlt ?? ogTitle },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: ogTitle },
@@ -102,7 +159,7 @@ export function seo(input: SeoInput): {
       meta.push({ property: "article:modified_time", content: input.modifiedTime });
     if (input.section) meta.push({ property: "article:section", content: input.section });
     for (const a of authors.length ? authors : [site.defaultAuthor])
-      meta.push({ property: "article:author", content: a.url ?? a.name });
+      if (a.url) meta.push({ property: "article:author", content: a.url });
     for (const t of input.tags ?? []) meta.push({ property: "article:tag", content: t });
   }
   meta.push({

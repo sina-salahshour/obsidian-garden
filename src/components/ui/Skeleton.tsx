@@ -21,7 +21,8 @@ export function PostCardSkeleton() {
 
 export function PostListSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="grid gap-4" role="status" aria-label="Loading posts">
+    <div className="grid gap-4" role="status">
+      <span className="sr-only">Loading posts…</span>
       {Array.from({ length: count }, (_, i) => (
         <PostCardSkeleton key={i} />
       ))}
@@ -32,7 +33,8 @@ export function PostListSkeleton({ count = 4 }: { count?: number }) {
 export function TagCloudSkeleton({ count = 14 }: { count?: number }) {
   const widths = ["w-14", "w-20", "w-16", "w-24", "w-12", "w-[4.5rem]", "w-28"];
   return (
-    <div className="flex flex-wrap gap-2" role="status" aria-label="Loading tags">
+    <div className="flex flex-wrap gap-2" role="status">
+      <span className="sr-only">Loading tags…</span>
       {Array.from({ length: count }, (_, i) => (
         <Skeleton key={i} className={cn("h-8 rounded-full", widths[i % widths.length])} />
       ))}
@@ -42,7 +44,8 @@ export function TagCloudSkeleton({ count = 14 }: { count?: number }) {
 
 export function CardRowSkeleton({ count = 3 }: { count?: number }) {
   return (
-    <div className="grid gap-3" role="status" aria-label="Loading">
+    <div className="grid gap-3" role="status">
+      <span className="sr-only">Loading…</span>
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="flex items-center gap-4 rounded-xl border border-line p-4">
           <Skeleton className="size-9 shrink-0 rounded-lg" />
@@ -59,7 +62,8 @@ export function CardRowSkeleton({ count = 3 }: { count?: number }) {
 /** Generic page-level pending state: a heading bar and a few lines. */
 export function PageSkeleton() {
   return (
-    <div className="container-prose py-14" role="status" aria-label="Loading page">
+    <div className="container-prose py-14" role="status">
+      <span className="sr-only">Loading page…</span>
       <Skeleton className="h-3 w-28" />
       <Skeleton className="mt-5 h-10 w-4/5" />
       <Skeleton className="mt-3 h-10 w-3/5" />

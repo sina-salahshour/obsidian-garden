@@ -15,7 +15,7 @@ import {
   resolveAttachment,
 } from "../src/content/attachments.ts";
 import { slugifySegment } from "../src/content/slug.ts";
-import type { SiteAuthor, SiteData } from "../src/content/types.ts";
+import type { GithubButton, SiteAuthor, SiteData } from "../src/content/types.ts";
 
 export { PRIVATE_DIR };
 
@@ -535,6 +535,19 @@ export function normalizeHandle(value: unknown): string | null {
   return handle ? `@${handle}` : null;
 }
 
+const GITHUB_BUTTONS: readonly GithubButton[] = ["hidden", "icon", "stars"];
+
+/** `owner/repo` or a github.com URL (http, www, trailing slash, `.git`) -> "https://github.com/owner/repo". */
+export function normalizeGithub(value: unknown): string | null {
+  const raw = str(value);
+  if (!raw) return null;
+  const m = /^(?:https?:\/\/(?:www\.)?github\.com\/)?([\w.-]+)\/([\w.-]+?)(?:\.git)?\/*$/i.exec(
+    raw,
+  );
+  if (!m || m[1]!.startsWith(".") || m[2]!.startsWith(".")) return null;
+  return `https://github.com/${m[1]}/${m[2]}`;
+}
+
 const BCP47 = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i;
 
 export interface SiteBuild {
@@ -632,6 +645,22 @@ export function buildSiteData(
       if (has("twitter")) assign("twitter", "twitter", normalizeHandle(fm.twitter));
       if (has("block-crawlers"))
         assign("blockCrawlers", "block-crawlers", list(fm["block-crawlers"]));
+      if (has("github")) {
+        const gh = normalizeGithub(fm.github);
+        if (gh) assign("github", "github", gh);
+        else
+          warnings.push(
+            `${note.path}: github "${String(fm.github)}" is not owner/repo or a github.com URL; ignored`,
+          );
+      }
+      if (has("github-button")) {
+        const btn = str(fm["github-button"])?.toLowerCase() as GithubButton | undefined;
+        if (btn && GITHUB_BUTTONS.includes(btn)) assign("githubButton", "github-button", btn);
+        else
+          warnings.push(
+            `${note.path}: github-button "${String(fm["github-button"])}" must be hidden, icon or stars; using icon`,
+          );
+      }
       fallbackTitle ??= firstHeading(note.body);
       fallbackDescription ??= firstParagraph(note.body);
     } else if (role === "author") {
@@ -695,6 +724,8 @@ export function buildSiteData(
     keywords: set.keywords ?? [],
     twitter: set.twitter ?? null,
     blockCrawlers: set.blockCrawlers ?? [],
+    github: set.github ?? null,
+    githubButton: set.githubButton ?? "icon",
     authors: ordered.map((a) => a.author),
   };
   return { data, attachments: [...images].sort(), warnings };

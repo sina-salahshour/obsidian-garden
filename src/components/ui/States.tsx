@@ -98,7 +98,7 @@ export function NotFound({
   children?: React.ReactNode;
 }) {
   return (
-    <main id="main" className="container-prose py-20 sm:py-28">
+    <main id="main" tabIndex={-1} className="container-prose py-20 outline-none sm:py-28">
       <p className="text-center font-mono text-xs tracking-widest text-subtle">404</p>
       <EmptyState
         className="mt-4 border-none"
@@ -125,7 +125,7 @@ export function ErrorView({ error, reset }: { error: unknown; reset?: () => void
   const router = useRouter();
   const message = error instanceof Error ? error.message : String(error);
   return (
-    <main id="main" className="container-prose py-20 sm:py-28">
+    <main id="main" tabIndex={-1} className="container-prose py-20 outline-none sm:py-28">
       <EmptyState
         className="border-none"
         title="Something went sideways"

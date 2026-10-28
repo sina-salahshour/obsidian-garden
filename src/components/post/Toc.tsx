@@ -5,7 +5,7 @@ import {
   useMotionValueEvent,
   useScroll,
 } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Heading } from "~/content/types";
 import { cn } from "~/lib/cn";
 import { useActiveHeading, useScrollLock } from "~/lib/hooks";
@@ -18,6 +18,28 @@ function scrollToHeading(id: string) {
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   history.replaceState(history.state, "", `#${id}`);
+  // move focus to the section so the next Tab continues from there, not from the TOC
+  if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+  el.focus({ preventScroll: true });
+}
+
+const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Keep Tab / Shift+Tab cycling inside `root` (the modal sheet). */
+function trapTab(e: React.KeyboardEvent, root: HTMLElement | null) {
+  if (e.key !== "Tab" || !root) return;
+  const nodes = [...root.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  if (!nodes.length) return;
+  const first = nodes[0]!;
+  const last = nodes[nodes.length - 1]!;
+  const current = document.activeElement;
+  if (e.shiftKey && (current === first || !root.contains(current))) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (current === last || !root.contains(current))) {
+    e.preventDefault();
+    first.focus();
+  }
 }
 
 function TocList({
@@ -102,12 +124,27 @@ export function MobileToc({ headings }: { headings: Heading[] }) {
   const { scrollY, scrollYProgress } = useScroll();
   const drag = useDragControls();
   useMotionValueEvent(scrollY, "change", (y) => setShow(y > 400));
+  const openerRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  // false when the sheet closed because a link was chosen: focus then goes to the heading
+  const returnFocus = useRef(true);
+  const wasOpen = useRef(false);
   useScrollLock(open);
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (open) {
+      wasOpen.current = true;
+      returnFocus.current = true;
+      closeRef.current?.focus();
+      const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }
+    if (wasOpen.current) {
+      wasOpen.current = false;
+      // the opener re-mounts on the same commit that closes the sheet
+      if (returnFocus.current) openerRef.current?.focus({ preventScroll: true });
+    }
   }, [open]);
 
   if (items.length < 2) return null;
@@ -118,6 +155,7 @@ export function MobileToc({ headings }: { headings: Heading[] }) {
       <AnimatePresence>
         {show && !open && (
           <motion.button
+            ref={openerRef}
             type="button"
             onClick={() => setOpen(true)}
             aria-haspopup="dialog"
@@ -129,7 +167,11 @@ export function MobileToc({ headings }: { headings: Heading[] }) {
             transition={spring.snappy}
             className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-30 flex h-11 max-w-[calc(100vw-6rem)] items-center gap-2.5 rounded-full border border-line bg-surface/90 pr-4 pl-1.5 text-sm shadow-[var(--shadow-md)] backdrop-blur"
           >
-            <svg viewBox="0 0 36 36" className="size-8 -rotate-90 text-accent" aria-hidden="true">
+            <svg
+              viewBox="0 0 36 36"
+              className="size-8 shrink-0 -rotate-90 text-accent"
+              aria-hidden="true"
+            >
               <circle cx="18" cy="18" r="14" fill="none" stroke="var(--line)" strokeWidth="2.5" />
               <motion.circle
                 cx="18"
@@ -174,6 +216,8 @@ export function MobileToc({ headings }: { headings: Heading[] }) {
             />
             <motion.div
               key="sheet"
+              ref={sheetRef}
+              onKeyDown={(e) => trapTab(e, sheetRef.current)}
               role="dialog"
               aria-modal="true"
               aria-label="On this page"
@@ -205,11 +249,11 @@ export function MobileToc({ headings }: { headings: Heading[] }) {
                   <ListIcon size={16} className="text-subtle" /> On this page
                 </p>
                 <button
+                  ref={closeRef}
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close"
                   className="inline-flex size-10 items-center justify-center rounded-full text-muted hover:bg-sunken"
-                  autoFocus
                 >
                   <Close size={18} />
                 </button>
@@ -219,7 +263,10 @@ export function MobileToc({ headings }: { headings: Heading[] }) {
                   headings={items}
                   active={active}
                   layoutId="toc-active-mobile"
-                  onNavigate={() => setOpen(false)}
+                  onNavigate={() => {
+                    returnFocus.current = false;
+                    setOpen(false);
+                  }}
                 />
               </div>
             </motion.div>

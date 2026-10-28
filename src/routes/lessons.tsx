@@ -62,7 +62,7 @@ export const Route = createFileRoute("/lessons")({
     });
   },
   pendingComponent: () => (
-    <main className="container-page pt-10 sm:pt-14">
+    <main id="main" tabIndex={-1} className="container-page pt-10 sm:pt-14 outline-none">
       <LessonsGridSkeleton className="mt-24" />
     </main>
   ),

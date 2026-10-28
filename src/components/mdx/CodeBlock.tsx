@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Children, isValidElement, useRef, useState } from "react";
+import { Children, isValidElement, useEffect, useRef, useState } from "react";
 import { cn } from "~/lib/cn";
 import { copyText } from "~/lib/hooks";
 import { spring } from "~/lib/motion";
 import { Check, Copy } from "../ui/icons";
+import { scrollRegion, useOverflow } from "./useOverflow";
 
 const LABELS: Record<string, string> = {
   js: "JavaScript",
@@ -44,20 +45,27 @@ function languageOf(props: Props): string | undefined {
   return code?.props.className?.match(/language-([\w-]+)/)?.[1];
 }
 
-/** Shiki block with a language label and a copy button that morphs into a check. */
+/**
+ * Shiki block with a language label and a copy button that morphs into a check. The result is
+ * announced through a polite status next to the button (the button's name never changes), and a
+ * block that scrolls sideways becomes a focusable, named region so the keyboard can scroll it.
+ */
 export function CodeBlock(props: Props) {
-  const { className, "data-language": _lang, ...rest } = props;
+  const { className, "data-language": _lang, tabIndex: _tab, ...rest } = props;
   const lang = languageOf(props);
   const label = lang ? (LABELS[lang] ?? lang) : null;
   const ref = useRef<HTMLPreElement>(null);
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const copied = status === "copied";
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const overflowing = useOverflow(ref);
 
   const onCopy = async () => {
     const text = ref.current?.querySelector("code")?.innerText ?? ref.current?.innerText ?? "";
-    if (await copyText(text.replace(/\n$/, ""))) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    }
+    setStatus((await copyText(text.replace(/\n$/, ""))) ? "copied" : "failed");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setStatus("idle"), 1600);
   };
 
   return (
@@ -69,7 +77,7 @@ export function CodeBlock(props: Props) {
         <button
           type="button"
           onClick={onCopy}
-          aria-label={copied ? "Copied" : "Copy code"}
+          aria-label={label ? `Copy ${label} code` : "Copy code"}
           className="relative inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs text-muted transition-colors hover:bg-surface hover:text-fg"
         >
           <span className="relative grid size-4 place-items-center">
@@ -99,14 +107,19 @@ export function CodeBlock(props: Props) {
             </AnimatePresence>
           </span>
           <span className="hidden sm:inline" aria-hidden="true">
-            {copied ? "Copied" : "Copy"}
-          </span>
-          <span className="sr-only" role="status" aria-live="polite">
-            {copied ? "Copied to clipboard" : ""}
+            {copied ? "Copied" : status === "failed" ? "Failed" : "Copy"}
           </span>
         </button>
+        <span className="sr-only" role="status">
+          {copied ? "Copied to clipboard" : status === "failed" ? "Could not copy the code" : ""}
+        </span>
       </div>
-      <pre ref={ref} className={cn(className)} {...rest} />
+      <pre
+        ref={ref}
+        className={cn(className)}
+        {...rest}
+        {...scrollRegion(overflowing, label ? `${label} code` : "Code")}
+      />
     </div>
   );
 }

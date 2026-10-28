@@ -82,7 +82,6 @@ export const Route = createFileRoute("/posts/$")({
           readingMinutes: meta.readingMinutes,
           inLanguage: site.locale,
           courseSlug: folder?.slug,
-          position: meta.order,
           level: meta.level ?? folder?.level,
         }),
         breadcrumbNode(origin, path, [
@@ -120,9 +119,12 @@ function PostPage() {
             aria-labelledby="post-title"
           >
             <header>
-              <nav {...enter(0)} aria-label="Breadcrumb">
+              {/* A single "back up one level" link, so it is labelled as such rather than as a
+                  breadcrumb trail (which would promise Home / Section / Current). */}
+              <nav {...enter(0)} aria-label="Back">
                 {folder ? (
                   <Link
+                    tabIndex={0}
                     to="/series/$folder"
                     params={{ folder: folder.slug }}
                     className="group inline-flex items-center gap-1.5 text-sm font-medium text-accent-strong"
@@ -135,6 +137,7 @@ function PostPage() {
                   </Link>
                 ) : (
                   <Link
+                    tabIndex={0}
                     to="/posts"
                     className="group inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-fg"
                   >
@@ -255,7 +258,8 @@ function PostPage() {
 
 function BodySkeleton() {
   return (
-    <div className="grid gap-3" role="status" aria-label="Loading note">
+    <div className="grid gap-3" role="status">
+      <span className="sr-only">Loading note…</span>
       {Array.from({ length: 10 }, (_, i) => (
         <Skeleton key={i} className={i % 4 === 3 ? "h-4 w-2/3" : "h-4 w-full"} />
       ))}

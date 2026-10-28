@@ -1,13 +1,32 @@
 import { motion } from "motion/react";
-import { useId, useState } from "react";
+import { use, useId, useState } from "react";
 import { cn } from "~/lib/cn";
 import { spring } from "~/lib/motion";
 import { Close } from "../ui/icons";
 import { Overlay, overlayButton } from "../ui/Overlay";
+import { InLink } from "./link-context";
+
+/** "/attachments/react/fiber-tree_v2.png" -> "fiber tree v2": a name for images without alt text. */
+export function nameFromSrc(src: string): string {
+  const file = src.split(/[?#]/)[0]!.split("/").pop() ?? "";
+  let name = file;
+  try {
+    name = decodeURIComponent(file);
+  } catch {
+    // keep the raw name
+  }
+  return name
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[-_.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 /**
  * Lazy image that zooms into a lightbox: the same element (shared layoutId) flies from
- * its place in the text to the centre of the screen and back.
+ * its place in the text to the centre of the screen and back. Inside a link it is a plain image
+ * (a button inside a link would nest two controls). Controls are named by the alt text, else by
+ * the humanised file name.
  */
 export function ZoomImage({
   src,
@@ -20,13 +39,29 @@ export function ZoomImage({
 }: React.ComponentProps<"img">) {
   const [open, setOpen] = useState(false);
   const layoutId = `img-${useId()}`;
+  const inLink = use(InLink);
   if (!src) return null;
+  const name = alt || nameFromSrc(src) || "image";
+  if (inLink)
+    return (
+      <img
+        src={src}
+        alt={alt}
+        title={title}
+        width={width}
+        height={height}
+        loading="lazy"
+        decoding="async"
+        className={cn("inline-block h-auto max-w-full align-middle", className)}
+        {...rest}
+      />
+    );
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={alt ? `Enlarge image: ${alt}` : "Enlarge image"}
+        aria-label={`Enlarge image: ${name}`}
         className="not-prose my-6 block w-full cursor-zoom-in rounded-xl"
       >
         <motion.img
@@ -49,7 +84,7 @@ export function ZoomImage({
       <Overlay
         open={open}
         onClose={() => setOpen(false)}
-        label={alt || "Image"}
+        label={`Image: ${name}`}
         className="grid place-items-center p-4 sm:p-10"
       >
         <motion.img

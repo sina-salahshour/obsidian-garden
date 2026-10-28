@@ -7,7 +7,6 @@ import { fileURLToPath } from "node:url";
 import type { Options } from "@mdx-js/rollup";
 import rehypeShiki from "@shikijs/rehype";
 import rehypeKatex from "rehype-katex";
-import rehypeSlug from "rehype-slug";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -16,6 +15,7 @@ import { loadCatalog, type Catalog } from "./catalog.ts";
 import { rehypeCodeDefaults, shikiOptions } from "./shiki.ts";
 import { rehypeMeta, remarkMeta } from "./remark-meta.ts";
 import remarkObsidian from "./remark-obsidian.ts";
+import rehypeSlug from "./rehype-slug.ts";
 import type { FileLike } from "./unified-types.ts";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");

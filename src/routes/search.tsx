@@ -42,7 +42,7 @@ export const Route = createFileRoute("/search")({
 
 function SearchPending() {
   return (
-    <main className="container-prose pt-10 sm:pt-14">
+    <main id="main" tabIndex={-1} className="container-prose pt-10 sm:pt-14 outline-none">
       <Skeleton className="h-10 w-40" />
       <Skeleton className="mt-8 h-14 w-full rounded-2xl" />
       <div className="mt-8">
@@ -100,7 +100,7 @@ function SearchPage() {
             spellCheck={false}
             autoComplete="off"
             enterKeyHint="search"
-            className="h-14 w-full rounded-2xl border border-line bg-surface pr-12 pl-12 text-lg shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] outline-none placeholder:text-subtle focus:border-accent-line focus:shadow-[0_0_0_4px_var(--accent-soft)]"
+            className="h-14 w-full rounded-2xl border border-line bg-surface pr-12 pl-12 text-lg shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] outline-none placeholder:text-subtle focus:border-ring focus:shadow-[0_0_0_1px_var(--ring),0_0_0_5px_var(--accent-soft)]"
           />
           <AnimatePresence>
             {loading && (

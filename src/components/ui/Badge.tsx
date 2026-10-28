@@ -12,7 +12,7 @@ export function PrivateBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-warm/30 bg-warm/10 px-2 py-0.5 text-[0.6875rem] font-medium tracking-wide text-warm",
+        "inline-flex items-center gap-1 rounded-full border border-warm/30 bg-warm/10 px-2 py-0.5 text-[0.6875rem] font-medium tracking-wide text-warm-text",
         className,
       )}
       title="Private: only visible to you"

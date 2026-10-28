@@ -63,7 +63,7 @@ describe("schema", () => {
     expect(node.sameAs).toEqual(["https://github.com/ada"]);
   });
 
-  test("article in a course points at the course and keeps its position", () => {
+  test("article in a course points at the course; position is not an Article property", () => {
     const node = articleNode(origin, {
       type: "TechArticle",
       path: "/posts/react-explain/fiber",
@@ -79,7 +79,6 @@ describe("schema", () => {
       readingMinutes: 6,
       inLanguage: "en",
       courseSlug: "react-explain",
-      position: 3,
       level: "advanced",
     });
     expect(node).toMatchObject({
@@ -89,10 +88,10 @@ describe("schema", () => {
       dateModified: "2026-01-01",
       timeRequired: "PT6M",
       isPartOf: { "@id": ids.course(origin, "react-explain") },
-      position: 3,
       proficiencyLevel: "Advanced",
       author: [{ "@id": ids.author(origin, "ada-lovelace") }],
     });
+    expect(node).not.toHaveProperty("position");
   });
 
   test("a standalone article has no position and belongs to the website", () => {
@@ -110,11 +109,12 @@ describe("schema", () => {
       wordCount: 10,
       readingMinutes: 0,
       inLanguage: "en",
-      position: 4,
-      level: null,
+      level: "advanced",
     });
     expect(node.isPartOf).toEqual({ "@id": ids.website(origin) });
     expect(node).not.toHaveProperty("position");
+    // proficiencyLevel is defined for TechArticle only
+    expect(node).not.toHaveProperty("proficiencyLevel");
     expect(node).not.toHaveProperty("image");
     expect(node).not.toHaveProperty("keywords");
     expect(node.timeRequired).toBe("PT1M");
@@ -149,16 +149,15 @@ describe("schema", () => {
           "@type": "TechArticle",
           name: "One",
           url: "https://example.com/posts/c/one",
-          position: 1,
         },
         {
           "@type": "TechArticle",
           name: "Two",
           url: "https://example.com/posts/c/two",
-          position: 2,
         },
       ],
     });
+    for (const part of node.hasPart as object[]) expect(part).not.toHaveProperty("position");
   });
 
   test("breadcrumbs and item lists are 1-based with absolute URLs", () => {

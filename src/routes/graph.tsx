@@ -48,6 +48,11 @@ export const Route = createFileRoute("/graph")({
 const stage =
   "relative h-[calc(100dvh-var(--header-h)-2.75rem)] md:h-[calc(100dvh-var(--header-h))] min-h-[26rem]";
 
+/** visually hidden list link that shows as a calm chip, centred below the search, while focused
+ * (the global :focus-visible outline supplies the accent ring) */
+const noteChip =
+  "sr-only focus:not-sr-only focus:absolute focus:top-16 focus:left-1/2 focus:z-30 focus:max-w-[calc(100%-2rem)] focus:-translate-x-1/2 focus:truncate focus:rounded-full focus:border focus:border-line focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:shadow-[var(--shadow-md)]";
+
 function Title({ meta }: { meta?: React.ReactNode }) {
   return (
     <div className="pointer-events-none absolute top-3 left-3 z-10 max-sm:hidden sm:top-4 sm:left-4">
@@ -61,7 +66,7 @@ function Title({ meta }: { meta?: React.ReactNode }) {
 
 function GraphPending() {
   return (
-    <main id="main" className={stage}>
+    <main id="main" tabIndex={-1} className={`${stage} outline-none`}>
       <h1 className="sr-only">Graph</h1>
       <Title />
       <Skeleton className="absolute inset-3 rounded-3xl opacity-60" />
@@ -91,22 +96,40 @@ function GraphPage() {
         onOpen={open}
         className="absolute inset-0 border-y border-line bg-surface"
       />
-      {/* the canvas is not accessible; offer the same notes as a plain list */}
-      <nav aria-label="All notes in the graph" className="sr-only">
+      {/*
+        the canvas is not accessible; offer the same notes as a plain list. Links stay visually
+        hidden until focused, then surface as a small chip over the canvas so sighted keyboard
+        users can see where they are. Descriptions reuse only what the graph already received.
+      */}
+      <nav aria-label="All notes in the graph">
         <ul>
-          {graph.nodes.map((n) => (
-            <li key={n.id}>
-              {n.isFolderNote ? (
-                <Link to="/series/$folder" params={{ folder: n.id }}>
-                  {n.title} (series)
-                </Link>
-              ) : (
-                <Link to="/posts/$" params={{ _splat: n.id }}>
+          {graph.nodes.map((n, i) => {
+            const descId = `graph-note-desc-${i}`;
+            const desc = [
+              n.isFolderNote ? "Series start" : null,
+              info[n.id]?.description?.replace(/[.!?]+$/, ""),
+              plural(n.degree, "link"),
+              n.tags.length ? `Tags: ${n.tags.slice(0, 5).join(", ")}` : null,
+            ]
+              .filter(Boolean)
+              .join(". ");
+            return (
+              <li key={n.id}>
+                <Link
+                  to={n.isFolderNote ? "/series/$folder" : "/posts/$"}
+                  params={n.isFolderNote ? { folder: n.id } : { _splat: n.id }}
+                  aria-describedby={descId}
+                  className={noteChip}
+                >
                   {n.title}
+                  {n.isFolderNote && <span className="sr-only"> (series)</span>}
                 </Link>
-              )}
-            </li>
-          ))}
+                <span id={descId} className="sr-only">
+                  {desc}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </main>

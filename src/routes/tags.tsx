@@ -41,7 +41,7 @@ export const Route = createFileRoute("/tags")({
     });
   },
   pendingComponent: () => (
-    <main className="container-page py-14">
+    <main id="main" tabIndex={-1} className="container-page py-14 outline-none">
       <TagCloudSkeleton count={24} />
     </main>
   ),

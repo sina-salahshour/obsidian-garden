@@ -2,7 +2,7 @@ import { describe, expect, test } from "vite-plus/test";
 import type { SiteAuthor } from "~/content/types";
 import { site } from "~/site.config";
 import { robotsTxt } from "./robots";
-import { ogLocale, pageTitle, seo, socialImage } from "./seo";
+import { ogLocale, pageTitle, repeatedMetaExtras, seo, socialImage } from "./seo";
 import { escapeXml } from "./xml";
 
 const origin = "https://example.com";
@@ -56,7 +56,11 @@ describe("seo", () => {
     expect(links).toEqual([{ rel: "canonical", href: "https://example.com/posts/fiber" }]);
     expect(get(meta, "og:image")).toEqual(["https://example.com/attachments/x.png"]);
     expect(get(meta, "og:image:alt")).toEqual(["Fiber"]);
-    expect(get(meta, "article:author")).toEqual(["Bob"]);
+    // Bob has no url: article:author must be a profile URL, so it is left out
+    expect(get(meta, "article:author")).toEqual([]);
+    expect(get(meta, "og:image:type")).toEqual(["image/png"]);
+    // a per-post image has no known size
+    expect(get(meta, "og:image:width")).toEqual([]);
     expect(get(meta, "article:section")).toEqual(["React Explained"]);
     expect(get(meta, "twitter:creator")).toEqual(["@bob"]);
     expect(get(meta, "robots")).toEqual(["index, follow, max-image-preview:large"]);
@@ -66,6 +70,39 @@ describe("seo", () => {
     const types = ld["@graph"].map((n: { "@type": string }) => n["@type"]);
     expect(types[0]).toBe("WebSite");
     expect(types).toContain("Person");
+  });
+
+  test("every tag and every author with a url becomes its own article meta", () => {
+    const ada = { ...bob, id: "ada", name: "Ada", url: "https://ada.dev", twitter: null };
+    const { meta } = seo({
+      siteUrl: origin,
+      title: "Fiber",
+      path: "/posts/fiber",
+      type: "article",
+      authors: [ada, bob, { ...ada, id: "eve", url: "https://eve.dev" }],
+      tags: ["react", "fiber", "scheduler", "hooks", "internals"],
+    });
+    expect(get(meta, "article:tag")).toEqual(["react", "fiber", "scheduler", "hooks", "internals"]);
+    expect(get(meta, "article:author")).toEqual(["https://ada.dev", "https://eve.dev"]);
+  });
+
+  test("repeatedMetaExtras: the values HeadContent's dedupe drops (all but the last, deepest match)", () => {
+    const leaf = seo({ type: "article", tags: ["a", "b", "c"] }).meta;
+    const root = [{ property: "article:tag", content: "root" }];
+    expect(repeatedMetaExtras([root, undefined, leaf])).toEqual([
+      { property: "article:tag", content: "a" },
+      { property: "article:tag", content: "b" },
+    ]);
+    expect(repeatedMetaExtras([root])).toEqual([]);
+    expect(repeatedMetaExtras([[{ name: "description", content: "x" }]])).toEqual([]);
+  });
+
+  test("the default social card carries its size and type", () => {
+    const { meta } = seo({ siteUrl: origin });
+    expect(get(meta, "og:image")).toEqual([`${origin}${socialImage()}`]);
+    expect(get(meta, "og:image:width")).toEqual(["1200"]);
+    expect(get(meta, "og:image:height")).toEqual(["630"]);
+    expect(get(meta, "og:image:type")).toEqual(["image/png"]);
   });
 
   test("canonical override wins for cross-posts; noindex pages say noindex, follow", () => {

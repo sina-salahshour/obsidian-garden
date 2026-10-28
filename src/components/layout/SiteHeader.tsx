@@ -10,6 +10,7 @@ import { LessonsGrid, LessonsGridSkeleton } from "../series/LessonsGrid";
 import { prefetchLessons, useLessons } from "../series/useLessons";
 import { ArrowRight, ChevronDown, GraphIcon, Reset, SearchIcon } from "../ui/icons";
 import { Kbd } from "../ui/Badge";
+import { GithubButton } from "./GithubButton";
 import { ThemeToggle } from "./ThemeToggle";
 
 const nav = [
@@ -46,6 +47,7 @@ export function SiteHeader() {
   const [condensed, setCondensed] = useState(false);
   const [hidden, setHidden] = useState(false);
   const paletteOpen = usePaletteOpen();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useMotionValueEvent(scrollY, "change", (y) => {
     const prev = scrollY.getPrevious() ?? 0;
@@ -73,18 +75,24 @@ export function SiteHeader() {
         )}
       >
         <div className="container-page flex h-[var(--header-h)] items-center gap-2">
+          {/* Explicit tabIndex={0} on header links: Safari (and some Chromium setups) leave plain
+              links out of the Tab order, which would skip the nav and the Lessons panel. */}
           <a
+            tabIndex={0}
             href="#main"
             className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-fg focus:px-4 focus:py-2 focus:text-sm focus:text-bg"
           >
-            Skip to content
+            Skip to main content
           </a>
           <Link
+            tabIndex={0}
             to="/"
             className="group -ml-1 flex min-w-0 items-center gap-2.5 rounded-lg p-1"
             aria-label={`${site.title}, home`}
           >
+            {/* tabIndex -1: whileTap would otherwise make Motion add a tab stop inside the link */}
             <motion.span
+              tabIndex={-1}
               whileHover={{ rotate: -8 }}
               whileTap={{ scale: 0.92 }}
               transition={spring.snappy}
@@ -102,13 +110,14 @@ export function SiteHeader() {
               <LessonsMenu paletteOpen={paletteOpen} />
               {nav.map((item) => (
                 <li key={item.to}>
-                  <Link
+                  <NavLink
                     to={item.to}
-                    className="relative inline-flex h-9 items-center rounded-full px-3.5 text-sm font-medium text-muted transition-colors hover:text-fg data-[status=active]:text-fg"
+                    pathname={pathname}
+                    className="relative inline-flex h-9 items-center rounded-full px-3.5 text-sm font-medium text-muted transition-colors hover:text-fg data-[section]:text-fg"
                   >
-                    {({ isActive }) => (
+                    {(inSection) => (
                       <>
-                        {isActive && (
+                        {inSection && (
                           <motion.span
                             layoutId="nav-active"
                             transition={spring.layout}
@@ -118,7 +127,7 @@ export function SiteHeader() {
                         <span className="relative">{item.label}</span>
                       </>
                     )}
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
             </ul>
@@ -137,12 +146,14 @@ export function SiteHeader() {
               <Kbd className="ml-3 hidden sm:inline-flex">⌘K</Kbd>
             </button>
             <Link
+              tabIndex={0}
               to="/graph"
               aria-label="Graph view"
               className="inline-flex size-10 items-center justify-center rounded-full text-muted transition-colors hover:bg-sunken hover:text-fg md:hidden"
             >
               <GraphIcon size={18} />
             </Link>
+            <GithubButton />
             <ThemeToggle />
           </div>
         </div>
@@ -154,6 +165,7 @@ export function SiteHeader() {
 
 /** Second row on phones: the sections as a calm segmented strip (no dropdown on mobile). */
 function MobileNav() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav aria-label="Sections" className="container-page -mt-1 pb-2 md:hidden">
       <ul className="flex gap-1">
@@ -161,13 +173,14 @@ function MobileNav() {
           .filter((n) => n.to !== "/graph")
           .map((item) => (
             <li key={item.to}>
-              <Link
+              <NavLink
                 to={item.to}
-                className="relative inline-flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted data-[status=active]:text-fg"
+                pathname={pathname}
+                className="relative inline-flex h-8 items-center rounded-full px-3 text-sm font-medium text-muted data-[section]:text-fg"
               >
-                {({ isActive }) => (
+                {(inSection) => (
                   <>
-                    {isActive && (
+                    {inSection && (
                       <motion.span
                         layoutId="mnav-active"
                         transition={spring.layout}
@@ -177,11 +190,48 @@ function MobileNav() {
                     <span className="relative">{item.label}</span>
                   </>
                 )}
-              </Link>
+              </NavLink>
             </li>
           ))}
       </ul>
     </nav>
+  );
+}
+
+type NavTo = (typeof nav)[number]["to"] | "/lessons";
+
+/**
+ * A section link. The visual "you are here" state covers the whole section (/posts/… lights
+ * Posts), but only the section's own page is aria-current="page"; on a descendant the link says
+ * aria-current="true" (current section). `exact` keeps the router from stamping "page" itself.
+ */
+function NavLink({
+  to,
+  pathname,
+  className,
+  children,
+}: {
+  to: NavTo;
+  pathname: string;
+  className: string;
+  children: (inSection: boolean) => React.ReactNode;
+}) {
+  const inSection =
+    pathname === to ||
+    pathname.startsWith(`${to}/`) ||
+    (to === "/lessons" && pathname.startsWith("/series/"));
+  const exact = pathname === to;
+  return (
+    <Link
+      tabIndex={0}
+      to={to}
+      activeOptions={{ exact: true, includeSearch: false }}
+      aria-current={inSection && !exact ? "true" : undefined}
+      data-section={inSection ? "" : undefined}
+      className={className}
+    >
+      {children(inSection)}
+    </Link>
   );
 }
 
@@ -303,6 +353,7 @@ function LessonsMenu({ paletteOpen }: { paletteOpen: boolean }) {
           />
         )}
         <span className="relative">Lessons</span>
+        {active && <span className="sr-only"> (current section)</span>}
         <motion.span
           className="relative inline-flex text-subtle"
           initial={false}
@@ -361,6 +412,7 @@ function LessonsMenu({ paletteOpen }: { paletteOpen: boolean }) {
                     {lessons.status === "ready" ? plural(folders.length, "course") : "Courses"}
                   </span>
                   <Link
+                    tabIndex={0}
                     to="/lessons"
                     onClick={close}
                     className="group inline-flex items-center gap-1.5 rounded-full font-medium text-muted hover:text-fg"

@@ -78,6 +78,8 @@ export function GraphView({
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
   const [tag, setTag] = useState<string | null>(null);
+  /** the note last picked from search: its card stays pinned and it is announced once */
+  const [picked, setPicked] = useState<string | null>(null);
 
   const { nodes, links, neighbours, groups, byId } = useMemo(() => {
     const { groups, groupOf } = computeGroups(data.nodes);
@@ -721,16 +723,28 @@ export function GraphView({
   const partCount = cardNode?.isFolderNote
     ? nodes.filter((n) => !n.isFolderNote && n.folder === cardNode.folder).length
     : 0;
+  // keyboard users can't hover: a search pick pins the card (via `selected`) and is announced here;
+  // a pointer selection, Escape or the card's close button changes `selected` and silences it
+  const pickedNode = picked && picked === selected ? byId.get(picked) : undefined;
+  const pickedText = pickedNode
+    ? `${pickedNode.title}${pickedNode.isFolderNote ? ", series start" : ""} — ${pickedNode.degree} ${pickedNode.degree === 1 ? "link" : "links"}`
+    : "";
 
   return (
     <div ref={wrap} className={cn("relative touch-none overflow-hidden select-none", className)}>
       <canvas ref={canvas} aria-hidden="true" className="absolute inset-0 cursor-grab" />
+      <p role="status" aria-live="polite" className="sr-only">
+        {pickedText}
+      </p>
 
       {/* search: flies the camera to a note, or filters the graph to a tag */}
       <div className="pointer-events-none absolute inset-x-3 top-3 flex justify-end sm:inset-x-4 sm:top-4">
         <GraphSearch
           nodes={data.nodes}
-          onPick={(id) => engine.current?.flyTo(id)}
+          onPick={(id) => {
+            setPicked(id);
+            engine.current?.flyTo(id);
+          }}
           tag={tag}
           onTag={(t) => {
             setTag(t);
@@ -782,7 +796,7 @@ export function GraphView({
                 )}
               </div>
               {cardNode.isFolderNote && (
-                <p className="mt-1.5 text-xs font-semibold tracking-wide text-warm uppercase">
+                <p className="mt-1.5 text-xs font-semibold tracking-wide text-warm-text uppercase">
                   Start here · {partCount} {partCount === 1 ? "part" : "parts"}
                 </p>
               )}
@@ -947,6 +961,14 @@ function GraphSearch({
         .map((node) => ({ kind: "note", node }))
     : [];
   const items = [...tags, ...notes];
+  const expanded = open && items.length > 0;
+  const resultText = !query
+    ? ""
+    : items.length === 0
+      ? "No results"
+      : items.length === 1
+        ? "1 result"
+        : `${items.length} results`;
   const choose = (item: SearchItem) => {
     if (item.kind === "tag") onTag(item.tag);
     else onPick(item.node.id);
@@ -965,7 +987,7 @@ function GraphSearch({
   );
   return (
     <div className={cn("relative", className)}>
-      <label className="flex h-10 items-center gap-2 rounded-full border border-line bg-surface/90 px-3.5 shadow-[var(--shadow-md)] backdrop-blur transition-colors focus-within:border-accent-line">
+      <label className="flex h-10 items-center gap-2 rounded-full border border-line bg-surface/90 px-3.5 shadow-[var(--shadow-md)] backdrop-blur transition-colors focus-within:border-ring">
         <SearchIcon size={15} className="shrink-0 text-subtle" />
         <span className="sr-only">Find a note or tag in the graph</span>
         <AnimatePresence initial={false}>
@@ -1011,14 +1033,16 @@ function GraphSearch({
             } else if (e.key === "Backspace" && !q && tag) {
               onTag(null);
             } else if (e.key === "Escape") {
+              // first Escape only closes the list; the graph's own Escape (unpin) is left for later
+              if (open && items.length > 0) e.stopPropagation();
               setOpen(false);
               e.currentTarget.blur();
             }
           }}
           placeholder={tag ? "Notes with this tag…" : "Find a note or tag…"}
           role="combobox"
-          aria-expanded={open && items.length > 0}
-          aria-controls="graph-search-list"
+          aria-expanded={expanded}
+          aria-controls={expanded ? "graph-search-list" : undefined}
           aria-activedescendant={open && items[active] ? optionId(active) : undefined}
           aria-autocomplete="list"
           autoComplete="off"
@@ -1027,7 +1051,7 @@ function GraphSearch({
         />
       </label>
       <AnimatePresence>
-        {open && items.length > 0 && (
+        {expanded && (
           <motion.ul
             id="graph-search-list"
             role="listbox"
@@ -1081,6 +1105,9 @@ function GraphSearch({
           </motion.ul>
         )}
       </AnimatePresence>
+      <p role="status" aria-live="polite" className="sr-only">
+        {open ? resultText : ""}
+      </p>
     </div>
   );
 }
