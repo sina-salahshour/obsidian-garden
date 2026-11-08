@@ -244,6 +244,13 @@
   }
 }
 
+/* Trim the line box to cap height + baseline so `items-center` centres the letters on an
+   icon (Newsreader's tall ascent otherwise lifts them). Pair with overflow-x-clip, not
+   truncate: overflow:hidden would clip descenders that now fall outside the box. */
+@utility text-trim-cap {
+  text-box: trim-both cap alphabetic;
+}
+
 /* first-paint entrance (no JS needed); motion takes over for client navigations */
 @utility enter {
   animation: enter 0.6s var(--ease-out-expo) both;

@@ -1,4 +1,4 @@
-# Obsidian Garden
+# Data Garden
 
 A blog that publishes my Obsidian vault (`../obsidian`).
 

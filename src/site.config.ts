@@ -7,7 +7,7 @@ import { slugifySegment } from "./content/slug.ts";
 
 export type { SiteAuthor, SiteData };
 
-const DEFAULT_TITLE = "Obsidian Garden";
+const DEFAULT_TITLE = "Data Garden";
 const DEFAULT_DESCRIPTION =
   "Notes, deep dives and explainers, published straight from my Obsidian vault.";
 

@@ -20,7 +20,7 @@ describe("site.config", () => {
   it("parses site.json with defaults for everything", () => {
     const data = parseSiteData(undefined);
     expect(data).toMatchObject({
-      title: "Obsidian Garden",
+      title: "Data Garden",
       locale: "en",
       url: null,
       keywords: [],

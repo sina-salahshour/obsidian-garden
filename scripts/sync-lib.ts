@@ -419,7 +419,7 @@ export function planAttachments(
 // published. They are found before publish classification, so they may live in a `.nopublish` tree.
 
 export const SITE_DEFAULTS = {
-  title: "Obsidian Garden",
+  title: "Data Garden",
   description: "Notes, deep dives and explainers, published straight from my Obsidian vault.",
   locale: "en",
 } as const;

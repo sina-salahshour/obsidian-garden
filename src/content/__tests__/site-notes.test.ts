@@ -44,7 +44,7 @@ describe("site notes", () => {
   it("defaults with no site notes", () => {
     const { data, warnings } = buildSiteData([], files());
     expect(data).toEqual({
-      title: "Obsidian Garden",
+      title: "Data Garden",
       description: "Notes, deep dives and explainers, published straight from my Obsidian vault.",
       locale: "en",
       url: null,
@@ -128,7 +128,7 @@ describe("site notes", () => {
       image: "/attachments/logo.svg",
       url: null,
       locale: "en",
-      title: "Obsidian Garden",
+      title: "Data Garden",
     });
     expect(warnings).toHaveLength(4);
     expect(warnings.join("\n")).toMatch(/SVG/);

@@ -86,7 +86,7 @@ the sync warns on such an override). All keys are optional:
 ```yaml
 ---
 site: settings
-title: My Garden # else the first "# H1", else "Obsidian Garden"
+title: My Garden # else the first "# H1", else "Data Garden"
 description: What this site is about. # else the body's first paragraph
 url: https://example.com # canonical origin, no trailing slash needed
 locale: en # BCP-47, default en

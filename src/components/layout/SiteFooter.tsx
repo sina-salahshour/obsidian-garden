@@ -10,7 +10,7 @@ export function SiteFooter() {
       <div className="container-page flex flex-col gap-6 py-10 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Logo className="size-6" />
-          <p>
+          <p className="text-trim-cap">
             <span className="font-serif text-base text-fg">{site.title}</span>
             <span aria-hidden="true" className="mx-2 text-subtle">
               ·

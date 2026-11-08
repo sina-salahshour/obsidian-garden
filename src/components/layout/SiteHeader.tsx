@@ -100,7 +100,7 @@ export function SiteHeader() {
             >
               <Logo />
             </motion.span>
-            <span className="truncate font-serif text-[1.1875rem] font-medium tracking-tight">
+            <span className="text-trim-cap overflow-x-clip font-serif text-[1.1875rem] font-medium tracking-tight text-ellipsis whitespace-nowrap">
               {site.title}
             </span>
           </Link>
