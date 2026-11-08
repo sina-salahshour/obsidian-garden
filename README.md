@@ -49,12 +49,12 @@ so run `pnpm sync` and commit the result before you deploy.
 
 ## Environment
 
-| Variable       | Purpose                                                                                                                                                   |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SITE_URL`     | Canonical origin for RSS, sitemap and canonical links, e.g. `https://garden.example.com`. Else the site note `url`, then `VERCEL_PROJECT_PRODUCTION_URL`. |
-| `SHOW_PRIVATE` | `SHOW_PRIVATE=1 pnpm dev` lets you preview private notes. Dev only.                                                                                       |
-| `NITRO_PRESET` | Deployment target used at build time (see below). Defaults to `node-server`.                                                                              |
-| `PORT`         | Port for `pnpm start` (node-server preset).                                                                                                               |
+| Variable       | Purpose                                                                                                                                                                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SITE_URL`     | Canonical origin for RSS, sitemap and canonical links, e.g. `https://garden.example.com`. Comma-separate several (`https://a.com,https://b.org`) to make each domain canonical for its own requests; unknown hosts get the first. Else the site note `url`, then `VERCEL_PROJECT_PRODUCTION_URL`. |
+| `SHOW_PRIVATE` | `SHOW_PRIVATE=1 pnpm dev` lets you preview private notes. Dev only.                                                                                                                                                                                                                               |
+| `NITRO_PRESET` | Deployment target used at build time (see below). Defaults to `node-server`.                                                                                                                                                                                                                      |
+| `PORT`         | Port for `pnpm start` (node-server preset).                                                                                                                                                                                                                                                       |
 
 ## Deploy to Vercel
 

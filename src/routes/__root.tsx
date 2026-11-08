@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { HeadContent, Outlet, Scripts, createRootRoute, useMatches } from "@tanstack/react-router";
+import { Analytics } from "@vercel/analytics/react";
 import { MotionConfig } from "motion/react";
 import type { ReactNode } from "react";
 import { BackToTop } from "~/components/layout/BackToTop";
@@ -113,6 +114,7 @@ function RootDocument({ children }: { children: ReactNode }) {
           <CommandPalette search={search} />
           <BackToTop />
         </MotionConfig>
+        <Analytics />
         <Scripts />
       </body>
     </html>

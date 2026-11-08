@@ -247,7 +247,9 @@ pnpm dev          # or: vp dev   -> http://localhost:3000
 3. Set your site's public origin so RSS, the sitemap, `robots.txt` and canonical links are absolute. The origin is
    the first of: the `SITE_URL` environment variable (for example `https://garden.example.com`), the `url` of your
    `site: settings` note (see "Site notes and SEO" in section 5), `VERCEL_PROJECT_PRODUCTION_URL`, then the request
-   origin.
+   origin. Serving the site on several domains? List them all in `SITE_URL`, comma separated
+   (`https://garden.example.com,https://notes.example.org`): each domain stays canonical for its own requests, and
+   any other host (such as a `*.vercel.app` preview) falls back to the first.
 4. Optional: set `VITE_GTM_ID` to your Google Tag Manager container ID (for example `GTM-XXXXXXX`). GTM is
    omitted entirely when this variable is unset or empty. Since `VITE_` variables are embedded into client bundles
    at build time, configure it in Vercel for the environments where you want tracking enabled and redeploy after changes.

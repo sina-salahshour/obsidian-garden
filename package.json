@@ -19,6 +19,7 @@
     "@mdx-js/mdx": "3.1.1",
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-start": "1.169.4",
+    "@vercel/analytics": "^2.0.1",
     "clsx": "2.1.1",
     "d3-force": "3.0.0",
     "katex": "0.19.1",
