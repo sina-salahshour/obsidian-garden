@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "~/lib/cn";
-import { ease, spring } from "~/lib/motion";
+import { ease, hoverTrigger, spring } from "~/lib/motion";
 import {
   AlertTriangle,
   Bug,
@@ -184,7 +184,8 @@ export function Callout({
       )}
     >
       {foldable ? (
-        <button
+        <motion.button
+          {...hoverTrigger}
           type="button"
           aria-expanded={open}
           aria-controls={bodyId}
@@ -200,9 +201,11 @@ export function Callout({
           >
             <ChevronDown size={16} />
           </motion.span>
-        </button>
+        </motion.button>
       ) : (
-        <div className="flex items-center gap-3 px-4 pt-3 pb-1">{heading}</div>
+        <motion.div {...hoverTrigger} className="flex items-center gap-3 px-4 pt-3 pb-1">
+          {heading}
+        </motion.div>
       )}
       <motion.div
         ref={bodyRef}

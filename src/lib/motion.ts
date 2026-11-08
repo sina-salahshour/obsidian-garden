@@ -86,3 +86,9 @@ export function stagger(each = 0.045, delay = 0): Variants {
 /** Card hover: a 2px lift with a soft spring. */
 export const hoverLift = { y: -2, transition: spring.soft } as const;
 export const tapPress = { scale: 0.98 } as const;
+
+/**
+ * Spread on a motion element to make it the hover trigger for the animated icons inside it
+ * (Layers, Clock, Calendar, Flame, ClipboardList play their `hover` variant).
+ */
+export const hoverTrigger = { initial: "rest", animate: "rest", whileHover: "hover" } as const;

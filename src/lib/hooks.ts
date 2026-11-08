@@ -1,6 +1,6 @@
 import { useMotionValue, useReducedMotion, useSpring } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { spring } from "./motion";
+import { hoverTrigger, spring } from "./motion";
 
 export function useMediaQuery(query: string, serverValue = false): boolean {
   return useSyncExternalStore(
@@ -134,6 +134,8 @@ export function useCardHover({ pull = 3 }: { pull?: number } = {}) {
   const x = useSpring(tx, spring.soft);
   const y = useSpring(ty, spring.soft);
   return {
+    // also the hover trigger for animated icons inside the card
+    ...hoverTrigger,
     style: { x, y },
     onPointerMove(e: React.PointerEvent<HTMLElement>) {
       const r = e.currentTarget.getBoundingClientRect();

@@ -14,7 +14,8 @@ import { TagChip } from "~/components/ui/TagChip";
 import { getFolders, getPost, getRelated, getSeries } from "~/content/functions";
 import { loadPost } from "~/content/modules";
 import { formatDate, formatReading, isoDate } from "~/lib/format";
-import { enter } from "~/lib/motion";
+import { motion } from "motion/react";
+import { enter, hoverTrigger } from "~/lib/motion";
 import { articleNode, breadcrumbNode } from "~/lib/schema";
 import { seo, siteUrlFrom, socialImage } from "~/lib/seo";
 import { resolveAuthors, site } from "~/site.config";
@@ -181,13 +182,13 @@ function PostPage() {
               )}
               <div {...enter(4)}>
                 <dl className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-                  <div className="flex items-center gap-1.5">
+                  <motion.div {...hoverTrigger} className="flex items-center gap-1.5">
                     <dt className="sr-only">Published</dt>
                     <Calendar size={14} className="text-subtle" />
                     <dd>
                       <time dateTime={isoDate(meta.date)}>{formatDate(meta.date)}</time>
                     </dd>
-                  </div>
+                  </motion.div>
                   {meta.updated && meta.updated.slice(0, 10) !== meta.date.slice(0, 10) && (
                     <div className="flex items-center gap-1.5">
                       <dt>Updated</dt>
@@ -196,11 +197,11 @@ function PostPage() {
                       </dd>
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5">
+                  <motion.div {...hoverTrigger} className="flex items-center gap-1.5">
                     <dt className="sr-only">Reading time</dt>
                     <Clock size={14} className="text-subtle" />
                     <dd>{formatReading(meta.readingMinutes)}</dd>
-                  </div>
+                  </motion.div>
                   {isPrivate && <PrivateBadge />}
                 </dl>
                 {series.length > 1 && folder && (

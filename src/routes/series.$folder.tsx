@@ -9,7 +9,8 @@ import { NotFound, buttonStyles } from "~/components/ui/States";
 import { getFolders, getSeries } from "~/content/functions";
 import { loadPost } from "~/content/modules";
 import { formatDate, formatDuration, isoDate, plural } from "~/lib/format";
-import { enter } from "~/lib/motion";
+import { motion } from "motion/react";
+import { enter, hoverTrigger } from "~/lib/motion";
 import { breadcrumbNode, courseNode } from "~/lib/schema";
 import { seo, siteUrlFrom, socialImage } from "~/lib/seo";
 import { resolveAuthors, site } from "~/site.config";
@@ -106,9 +107,12 @@ function SeriesPage() {
             </Link>
           </div>
           <p {...enter(1)}>
-            <span className="mt-6 inline-flex items-center gap-2 text-xs font-semibold tracking-[0.1em] text-accent-strong uppercase">
+            <motion.span
+              {...hoverTrigger}
+              className="mt-6 inline-flex items-center gap-2 text-xs font-semibold tracking-[0.1em] text-accent-strong uppercase"
+            >
               <Layers size={14} /> Series
-            </span>
+            </motion.span>
           </p>
           <h1
             id="series-title"
@@ -191,12 +195,12 @@ function Stat({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col-reverse items-center gap-1 px-2 py-4">
+    <motion.div {...hoverTrigger} className="flex flex-col-reverse items-center gap-1 px-2 py-4">
       <dt className="flex items-center gap-1 text-xs text-subtle">
         <span className="max-xs:hidden">{icon}</span>
         {label}
       </dt>
       <dd className="text-[0.9375rem] font-medium tabular-nums sm:text-lg">{value}</dd>
-    </div>
+    </motion.div>
   );
 }
