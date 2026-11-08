@@ -246,7 +246,11 @@ export function MobileToc({ headings }: { headings: Heading[] }) {
                 className="flex shrink-0 touch-none items-center justify-between px-5 pt-1 pb-3"
               >
                 <p className="flex items-center gap-2 text-sm font-semibold">
-                  <ListIcon size={16} className="text-subtle" /> On this page
+                  {/* the lines ripple once as the sheet opens */}
+                  <motion.span initial="rest" animate="hover" className="inline-flex">
+                    <ListIcon size={16} className="text-subtle" />
+                  </motion.span>{" "}
+                  On this page
                 </p>
                 <button
                   ref={closeRef}

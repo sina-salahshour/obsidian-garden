@@ -16,6 +16,7 @@ export function PrivateBadge({
         className,
       )}
       title="Private: only visible to you"
+      data-icon-host
     >
       <Lock size={11} strokeWidth={2} />
       {compact ? <span className="sr-only">Private</span> : "Private"}

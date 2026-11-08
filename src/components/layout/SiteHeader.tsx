@@ -1,10 +1,16 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValueEvent,
+  useScroll,
+  type Variants,
+} from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { site } from "~/site.config";
 import { cn } from "~/lib/cn";
 import { plural } from "~/lib/format";
-import { fade, spring } from "~/lib/motion";
+import { fade, hoverTrigger, spring } from "~/lib/motion";
 import { palette, usePaletteOpen } from "~/lib/palette";
 import { LessonsGrid, LessonsGridSkeleton } from "../series/LessonsGrid";
 import { prefetchLessons, useLessons } from "../series/useLessons";
@@ -19,6 +25,13 @@ const nav = [
   { to: "/graph", label: "Graph" },
 ] as const;
 
+/** Hover: the mark tilts and its accent node pops (`logoHover` on the trigger, see below). */
+const logoNode: Variants = {
+  rest: { scale: 1, transition: spring.snappy },
+  hover: { scale: 1.3, transition: spring.snappy },
+};
+export const logoTilt: Variants = { rest: { rotate: 0 }, hover: { rotate: -8 } };
+
 /** The site mark: three linked nodes, the accent one "active". */
 export function Logo({ className }: { className?: string }) {
   return (
@@ -31,7 +44,7 @@ export function Logo({ className }: { className?: string }) {
         strokeWidth="1.4"
         strokeLinecap="round"
       />
-      <circle cx="14" cy="9" r="2.6" fill="var(--accent)" />
+      <motion.circle cx="14" cy="9" r="2.6" fill="var(--accent)" variants={logoNode} />
       <circle cx="9" cy="18.5" r="2.2" fill="var(--bg)" />
       <circle cx="19" cy="18.5" r="2.2" fill="var(--bg)" />
     </svg>
@@ -93,7 +106,8 @@ export function SiteHeader() {
             {/* tabIndex -1: whileTap would otherwise make Motion add a tab stop inside the link */}
             <motion.span
               tabIndex={-1}
-              whileHover={{ rotate: -8 }}
+              {...hoverTrigger}
+              variants={logoTilt}
               whileTap={{ scale: 0.92 }}
               transition={spring.snappy}
               className="inline-flex"

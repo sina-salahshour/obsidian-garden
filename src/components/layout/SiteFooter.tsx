@@ -1,15 +1,24 @@
 import { Link } from "@tanstack/react-router";
+import { motion } from "motion/react";
+import { hoverTrigger, spring } from "~/lib/motion";
 import { site } from "~/site.config";
 import { Rss } from "../ui/icons";
 import { Kbd } from "../ui/Badge";
-import { Logo } from "./SiteHeader";
+import { Logo, logoTilt } from "./SiteHeader";
 
 export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-line">
       <div className="container-page flex flex-col gap-6 py-10 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Logo className="size-6" />
+          <motion.span
+            {...hoverTrigger}
+            variants={logoTilt}
+            transition={spring.snappy}
+            className="inline-flex"
+          >
+            <Logo className="size-6" />
+          </motion.span>
           <p className="text-trim-cap">
             <span className="font-serif text-base text-fg">{site.title}</span>
             <span aria-hidden="true" className="mx-2 text-subtle">

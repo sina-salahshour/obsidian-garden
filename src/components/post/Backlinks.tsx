@@ -11,6 +11,7 @@ export function Backlinks({ posts, className }: { posts: PostMeta[]; className?:
     <section aria-labelledby="backlinks-title" className={cn(className)}>
       <h2
         id="backlinks-title"
+        data-icon-host
         className="flex items-center gap-2 text-xs font-semibold tracking-[0.08em] text-subtle uppercase"
       >
         <LinkIcon size={14} /> Linked from {posts.length} {posts.length === 1 ? "note" : "notes"}
