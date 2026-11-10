@@ -17,6 +17,8 @@ import { site } from "~/site.config";
 const searchSchema = z.object({
   tag: z.string().optional().catch(undefined),
   folder: z.string().optional().catch(undefined),
+  /** only notes outside a course; mutually exclusive with `folder` (picking one clears the other) */
+  standalone: z.boolean().optional().catch(undefined),
   sort: z.enum(["newest", "oldest", "title"]).default("newest").catch("newest"),
   page: z.number().int().min(1).default(1).catch(1),
 });
@@ -30,12 +32,14 @@ export const Route = createFileRoute("/posts/")({
   search: { middlewares: [stripSearchParams(defaults)] },
   loaderDeps: ({ search }) => search,
   loader: async ({ deps }) => {
-    const [list, tags, folders] = await Promise.all([
+    const [list, tags, folders, standalone] = await Promise.all([
       getPosts({ data: { ...deps, pageSize: PAGE_SIZE } }),
       getTags(),
       getFolders(),
+      // only the count: how many notes the "Standalone" pill would show
+      getPosts({ data: { standalone: true, pageSize: 1 } }),
     ]);
-    return { list, tags, folders };
+    return { list, tags, folders, standaloneCount: standalone.total };
   },
   // Filtering keeps the current list on screen (dimmed) for quick responses; only slow loads show the skeleton.
   pendingMs: 500,
@@ -47,7 +51,7 @@ export const Route = createFileRoute("/posts/")({
   ),
   head: ({ matches, match, loaderData }) => {
     const siteUrl = siteUrlFrom(matches);
-    const { folder, sort, page } = match.search;
+    const { folder, standalone, sort, page } = match.search;
     const tag = match.search.tag?.toLowerCase().replace(/^#/, "") || undefined;
     const base = tag ? `#${tag}` : "All posts";
     const title = page > 1 ? `${base} (page ${page})` : base;
@@ -55,7 +59,12 @@ export const Route = createFileRoute("/posts/")({
     const path = tag ? `/posts?tag=${encodeURIComponent(tag)}` : "/posts";
     // Only the first page of the plain list and of each known tag is indexable; pages, folder filters and
     // other sorts are views of the same notes (still followed), and an unknown tag is an empty page.
-    const noindex = page > 1 || !!folder || sort !== defaults.sort || loaderData?.list.total === 0;
+    const noindex =
+      page > 1 ||
+      !!folder ||
+      !!standalone ||
+      sort !== defaults.sort ||
+      loaderData?.list.total === 0;
     // Later pages are canonical to themselves (pointing them at page 1 would contradict noindex).
     const canonical = page > 1 ? `${path}${tag ? "&" : "?"}page=${page}` : path;
     return seo({
@@ -86,6 +95,9 @@ export const Route = createFileRoute("/posts/")({
   component: PostsPage,
 });
 
+/** pill value for "notes outside any course" in the series row (not a valid folder name: it has a space) */
+const STANDALONE = " standalone";
+
 const sortOptions = [
   { value: "newest" as const, label: "Newest" },
   { value: "oldest" as const, label: "Oldest" },
@@ -93,7 +105,7 @@ const sortOptions = [
 ];
 
 function PostsPage() {
-  const { list, tags, folders } = Route.useLoaderData();
+  const { list, tags, folders, standaloneCount } = Route.useLoaderData();
   const search = Route.useSearch();
   const loading = useRouterState({ select: (s) => s.isLoading });
   const seriesTitles = Object.fromEntries(folders.map((f) => [f.folder, f.title]));
@@ -118,13 +130,17 @@ function PostsPage() {
               </>
             ) : activeFolder ? (
               activeFolder.title
+            ) : search.standalone ? (
+              "Standalone posts"
             ) : (
               "All posts"
             )}
           </h1>
           <p className="mt-2 text-muted" aria-live="polite">
             {plural(list.total, "note")}
-            {search.tag || search.folder ? " match these filters" : " in the garden"}
+            {search.tag || search.folder || search.standalone
+              ? " match these filters"
+              : " in the garden"}
           </p>
         </div>
         <FilterPills
@@ -163,19 +179,28 @@ function PostsPage() {
             />
           )}
         />
-        {folders.length > 1 && (
+        {/* shown once there is a choice: several courses, or a course plus notes outside any */}
+        {folders.length > (standaloneCount ? 0 : 1) && (
           <FilterPills
             label="Filter by series"
             layoutId="folder-pill"
-            value={activeFolder?.folder}
+            value={search.standalone ? STANDALONE : activeFolder?.folder}
             options={[
-              { value: undefined, label: "Every series" },
+              { value: undefined, label: standaloneCount ? "Everything" : "Every series" },
+              ...(standaloneCount
+                ? [{ value: STANDALONE, label: "Standalone", count: standaloneCount }]
+                : []),
               ...folders.map((f) => ({ value: f.folder, label: f.title, count: f.count })),
             ]}
             renderOption={(opt, props) => (
               <Link
                 from={Route.fullPath}
-                search={(prev) => ({ ...prev, folder: opt.value, page: 1 })}
+                search={(prev) => ({
+                  ...prev,
+                  folder: opt.value === STANDALONE ? undefined : opt.value,
+                  standalone: opt.value === STANDALONE || undefined,
+                  page: 1,
+                })}
                 resetScroll={false}
                 {...props}
               />
@@ -185,7 +210,7 @@ function PostsPage() {
       </div>
 
       <AnimatePresence initial={false}>
-        {(search.tag || search.folder) && (
+        {(search.tag || search.folder || search.standalone) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -196,7 +221,13 @@ function PostsPage() {
             <div className="pt-4">
               <Link
                 from={Route.fullPath}
-                search={(prev) => ({ ...prev, tag: undefined, folder: undefined, page: 1 })}
+                search={(prev) => ({
+                  ...prev,
+                  tag: undefined,
+                  folder: undefined,
+                  standalone: undefined,
+                  page: 1,
+                })}
                 className="inline-flex h-8 items-center gap-1.5 rounded-full bg-sunken px-3 text-sm text-muted hover:text-fg"
               >
                 <Close size={13} /> Clear filters

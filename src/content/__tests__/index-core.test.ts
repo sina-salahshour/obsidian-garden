@@ -109,6 +109,19 @@ describe("lists", () => {
     expect(anon.list({ folder: "course" }).total).toBe(3);
   });
 
+  it("filters to standalone notes: outside a folder, or unnumbered inside one", () => {
+    const extra = createIndex([
+      ...posts.filter((p) => p.meta.visibility === "public"),
+      { meta: meta("course/aside", { title: "Aside" }), text: "" },
+    ]);
+    expect(extra.list({ standalone: true }).posts.map((p) => p.slug)).toEqual([
+      "course/aside",
+      "loose",
+    ]);
+    // never the folder note, and private notes stay out for anonymous viewers
+    expect(anon.list({ standalone: true }).posts.map((p) => p.slug)).toEqual(["loose"]);
+  });
+
   it("counts tags (count desc, then alpha)", () => {
     expect(anon.tags()).toEqual([
       { tag: "react", count: 3 },

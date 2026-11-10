@@ -22,6 +22,8 @@ export interface IndexedPost {
 export interface ListOptions {
   tag?: string;
   folder?: string;
+  /** only notes outside a series (not a numbered part of a course folder) */
+  standalone?: boolean;
   sort?: PostSort;
   page?: number;
   pageSize?: number;
@@ -253,7 +255,7 @@ export function createIndex(
     all,
     get: (slug) => bySlug.get(slug),
 
-    list({ tag, folder, sort = "newest", page = 1, pageSize = 12 } = {}) {
+    list({ tag, folder, standalone, sort = "newest", page = 1, pageSize = 12 } = {}) {
       let posts = listed;
       if (tag) {
         const t = tag.toLowerCase().replace(/^#/, "");
@@ -263,6 +265,7 @@ export function createIndex(
         posts = posts.filter(
           (m) => m.folder !== null && (m.folder === folder || folderSlug(m.folder) === folder),
         );
+      if (standalone) posts = posts.filter((m) => m.folder === null || m.order === null);
       posts =
         sort === "oldest"
           ? [...posts].sort((a, b) => -newestFirst(a, b))

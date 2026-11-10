@@ -23,6 +23,7 @@ export const getPosts = createServerFn({ method: "GET" })
     z.object({
       tag: z.string().max(100).optional(),
       folder: z.string().max(200).optional(),
+      standalone: z.boolean().optional(),
       sort: z.enum(["newest", "oldest", "title"]).optional(),
       page: z.number().int().min(1).optional(),
       pageSize: z.number().int().min(1).max(100).optional(),
