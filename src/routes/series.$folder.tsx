@@ -99,11 +99,11 @@ function SeriesPage() {
         <div className="mx-auto mt-8 max-w-[44rem] sm:mt-12">
           <div {...enter(0)}>
             <Link
-              to="/posts"
+              to="/lessons"
               className="group inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-fg"
             >
               <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />{" "}
-              All posts
+              All lessons
             </Link>
           </div>
           <p {...enter(1)}>
