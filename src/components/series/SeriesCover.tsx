@@ -124,7 +124,7 @@ function GeneratedCover({ seed }: { seed: string }) {
             height="48"
             rx="14"
             fill="var(--surface, #ffffff)"
-            stroke={i === accent ? "var(--accent, #6d4fd1)" : "var(--subtle, #8d867b)"}
+            stroke={i === accent ? "var(--accent, #5e81ac)" : "var(--subtle, #8d867b)"}
             strokeWidth="2.5"
           />
           {i === accent && (
@@ -134,13 +134,13 @@ function GeneratedCover({ seed }: { seed: string }) {
               width="104"
               height="48"
               rx="14"
-              fill="var(--accent, #6d4fd1)"
+              fill="var(--accent, #5e81ac)"
               fillOpacity=".12"
             />
           )}
           <path
             d={`M${n.x - 30} ${n.y}h${36 + Math.round(rnd() * 20)}`}
-            stroke={i === accent ? "var(--accent, #6d4fd1)" : "var(--line-strong, #d4cec3)"}
+            stroke={i === accent ? "var(--accent, #5e81ac)" : "var(--line-strong, #d4cec3)"}
             strokeWidth="6"
             strokeLinecap="round"
           />

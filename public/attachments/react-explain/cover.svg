@@ -29,11 +29,11 @@
   </g>
   <!-- the fiber being worked on -->
   <rect x="337" y="286" width="104" height="48" rx="14" fill="var(--surface, #ffffff)"/>
-  <rect x="337" y="286" width="104" height="48" rx="14" fill="var(--accent, #6d4fd1)" fill-opacity=".12" stroke="var(--accent, #6d4fd1)" stroke-width="2.5"/>
+  <rect x="337" y="286" width="104" height="48" rx="14" fill="var(--accent, #5e81ac)" fill-opacity=".12" stroke="var(--accent, #5e81ac)" stroke-width="2.5"/>
   <!-- placeholder labels (no text) -->
   <g stroke-width="6">
     <path d="M361 96h44M361 204h56M211 310h36M511 310h48M361 416h40" stroke="var(--line-strong, #d4cec3)"/>
-    <path d="M361 310h52" stroke="var(--accent, #6d4fd1)"/>
+    <path d="M361 310h52" stroke="var(--accent, #5e81ac)"/>
   </g>
   <circle cx="275" cy="310" r="5" fill="var(--subtle, #8d867b)"/>
 </svg>

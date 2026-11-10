@@ -4,8 +4,8 @@
   <g transform="translate(-24 -26)">
     <!-- state -->
     <circle cx="190" cy="250" r="54" fill="var(--surface, #ffffff)"/>
-    <circle cx="190" cy="250" r="54" fill="var(--accent, #6d4fd1)" fill-opacity=".12" stroke="var(--accent, #6d4fd1)" stroke-width="2.5"/>
-    <circle cx="190" cy="250" r="13" fill="var(--accent, #6d4fd1)"/>
+    <circle cx="190" cy="250" r="54" fill="var(--accent, #5e81ac)" fill-opacity=".12" stroke="var(--accent, #5e81ac)" stroke-width="2.5"/>
+    <circle cx="190" cy="250" r="13" fill="var(--accent, #5e81ac)"/>
     <!-- arrows -->
     <g stroke="var(--subtle, #8d867b)" stroke-width="2.5">
       <path d="M262 250h52M307 243l8 7-8 7"/>
@@ -14,7 +14,7 @@
     <!-- component: f( state ) -->
     <rect x="330" y="186" width="128" height="128" rx="28" fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2.5"/>
     <path d="M375 216c-17 20-17 48 0 68M413 216c17 20 17 48 0 68" stroke="var(--fg, #1f1d1a)" stroke-width="3"/>
-    <circle cx="394" cy="250" r="8" fill="var(--accent, #6d4fd1)"/>
+    <circle cx="394" cy="250" r="8" fill="var(--accent, #5e81ac)"/>
     <!-- the UI it returns -->
     <rect x="538" y="166" width="176" height="168" rx="18" fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2.5"/>
     <path d="M538 206h176" stroke="var(--line-strong, #d4cec3)" stroke-width="2"/>
@@ -26,10 +26,10 @@
       <path d="M562 232h96" stroke="var(--line-strong, #d4cec3)"/>
       <path d="M562 254h128M562 274h80" stroke="var(--line, #e6e2da)"/>
     </g>
-    <rect x="562" y="292" width="74" height="26" rx="13" fill="var(--accent, #6d4fd1)" fill-opacity=".12" stroke="var(--accent, #6d4fd1)" stroke-width="2"/>
-    <circle cx="578" cy="305" r="5" fill="var(--accent, #6d4fd1)"/>
-    <path d="M592 305h30" stroke="var(--accent, #6d4fd1)" stroke-width="4" stroke-opacity=".6"/>
+    <rect x="562" y="292" width="74" height="26" rx="13" fill="var(--accent, #5e81ac)" fill-opacity=".12" stroke="var(--accent, #5e81ac)" stroke-width="2"/>
+    <circle cx="578" cy="305" r="5" fill="var(--accent, #5e81ac)"/>
+    <path d="M592 305h30" stroke="var(--accent, #5e81ac)" stroke-width="4" stroke-opacity=".6"/>
     <!-- event -> setState -> render again -->
-    <path d="M599 334c0 96-409 104-409 -20M183 322l7-8 7 8" stroke="var(--accent, #6d4fd1)" stroke-width="2" stroke-dasharray="2 8" stroke-opacity=".8"/>
+    <path d="M599 334c0 96-409 104-409 -20M183 322l7-8 7 8" stroke="var(--accent, #5e81ac)" stroke-width="2" stroke-dasharray="2 8" stroke-opacity=".8"/>
   </g>
 </svg>

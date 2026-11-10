@@ -24,8 +24,8 @@
   --subtle: #736c61;
   --line: #e6e2da;
   --line-strong: #d4cec3;
-  --accent: #6d4fd1;
-  --accent-strong: #5a3dbd;
+  --accent: #5e81ac; /* nord10 */
+  --accent-strong: #4c6a91; /* nord10, deepened for AA link text */
   --accent-fg: #ffffff;
   --warm: #c98a2b;
   /* --warm is decorative (dots, strokes); use --warm-text for text (>=4.5:1) */
@@ -70,9 +70,9 @@
   --subtle: #8a8479;
   --line: #2a2825;
   --line-strong: #3a3733;
-  --accent: #a995f0;
-  --accent-strong: #c0b1f6;
-  --accent-fg: #17131f;
+  --accent: #88c0d0; /* nord8 */
+  --accent-strong: #a3d0dc; /* nord8, lifted for hover */
+  --accent-fg: #2e3440; /* nord0 */
   --warm: #e4b261;
   --warm-text: #e4b261;
 
