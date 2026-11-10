@@ -139,7 +139,9 @@ function PostsPage() {
           <p className="mt-2 text-muted" aria-live="polite">
             {plural(list.total, "note")}
             {search.tag || search.folder || search.standalone
-              ? " match these filters"
+              ? list.total === 1
+                ? " matches these filters"
+                : " match these filters"
               : " in the garden"}
           </p>
         </div>

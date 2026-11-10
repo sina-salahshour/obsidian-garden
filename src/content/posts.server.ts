@@ -19,7 +19,7 @@ const privateBodies = import.meta.glob<string>("/content/_private/**/*.{md,mdx}"
 /**
  * Published SVG attachments as raw text, so course covers can be inlined and follow the theme.
  * Bundled into the server only; a cover reaches the client solely as FolderInfo.coverSvg of a
- * folder the viewer may see.
+ * folder the viewer may see, or as PostDetail.coverSvg of a note the viewer may open.
  */
 const svgFiles = import.meta.glob<string>("/public/attachments/**/*.svg", {
   eager: true,

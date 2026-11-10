@@ -79,6 +79,8 @@ export interface PostDetail {
   prev: PostMeta | null;
   next: PostMeta | null;
   backlinks: PostMeta[];
+  /** the note's own `cover` inlined when it is a published SVG (same sanitising as course covers), else null */
+  coverSvg: string | null;
 }
 
 export interface TagCount {

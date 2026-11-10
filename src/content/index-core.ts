@@ -286,7 +286,12 @@ export function createIndex(
     detail(slug) {
       const meta = bySlug.get(slug);
       if (!meta) return null;
-      return { meta, ...neighbours(meta), backlinks: backlinks(slug) };
+      return {
+        meta,
+        ...neighbours(meta),
+        backlinks: backlinks(slug),
+        coverSvg: svgFor(meta.cover),
+      };
     },
 
     backlinks,

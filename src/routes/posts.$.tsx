@@ -5,6 +5,7 @@ import { Backlinks, RelatedPosts } from "~/components/post/Backlinks";
 import { PostBody } from "~/components/post/PostBody";
 import { PrevNext } from "~/components/post/PrevNext";
 import { MobileToc, Toc } from "~/components/post/Toc";
+import { SeriesCover } from "~/components/series/SeriesCover";
 import { SeriesProgress } from "~/components/series/SeriesProgress";
 import { PrivateBadge } from "~/components/ui/Badge";
 import { ArrowLeft, Calendar, Clock, Lock } from "~/components/ui/icons";
@@ -105,7 +106,7 @@ export const Route = createFileRoute("/posts/$")({
 
 function PostPage() {
   const data = Route.useLoaderData();
-  const { meta, prev, next, backlinks, folder, series, related } = data;
+  const { meta, prev, next, backlinks, folder, series, related, coverSvg } = data;
   const article = useRef<HTMLElement>(null);
   const isPrivate = meta.visibility === "private";
 
@@ -150,6 +151,18 @@ function PostPage() {
                   </Link>
                 )}
               </nav>
+
+              {meta.cover && (
+                <div {...enter(1)}>
+                  <SeriesCover
+                    src={meta.cover}
+                    svg={coverSvg}
+                    title={meta.title}
+                    priority
+                    className="mt-6 aspect-[16/10] rounded-2xl shadow-[var(--shadow-sm)] sm:aspect-[2.2/1]"
+                  />
+                </div>
+              )}
 
               {isPrivate && (
                 <div
