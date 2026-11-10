@@ -15,9 +15,11 @@
       "name": "Sina Salahshour",
       "aliases": [],
       "description": "Software developer writing source-level deep dives.",
-      "url": null,
+      "url": "https://github.com/sina-salahshour",
       "image": null,
-      "sameAs": [],
+      "sameAs": [
+        "https://github.com/sina-salahshour"
+      ],
       "twitter": null,
       "jobTitle": null
     }

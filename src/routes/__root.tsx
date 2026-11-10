@@ -13,6 +13,11 @@ import { repeatedMetaExtras, seo } from "~/lib/seo";
 import { THEME_COLORS, themeScript } from "~/lib/theme";
 import { site } from "~/site.config";
 import appCss from "~/styles/app.css?url";
+// The two faces every page paints with above the fold (UI sans, title serif). Preloaded so they are
+// fetched in parallel with app.css instead of only after it parses; Vite emits the same hashed file
+// the @font-face rule points at. Mono and the italics stay lazy: not every page uses them.
+import interLatin from "@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url";
+import newsreaderLatin from "@fontsource-variable/newsreader/files/newsreader-latin-opsz-normal.woff2?url";
 
 const gtmId = import.meta.env.VITE_GTM_ID?.trim();
 
@@ -45,7 +50,33 @@ export const Route = createRootRoute({
         ...base.meta.filter((m) => !/^og:image:(?:width|height|type)$/.test(m.property ?? "")),
       ],
       links: [
+        // Font preloads must be crossOrigin (fonts are always fetched in CORS mode) or the browser
+        // downloads them twice.
+        {
+          rel: "preload",
+          href: interLatin,
+          as: "font",
+          type: "font/woff2",
+          crossOrigin: "anonymous",
+        },
+        {
+          rel: "preload",
+          href: newsreaderLatin,
+          as: "font",
+          type: "font/woff2",
+          crossOrigin: "anonymous",
+        },
         { rel: "stylesheet", href: appCss },
+        // The header's star count is a CORS fetch to the GitHub API on first visit: warm the connection.
+        ...(site.github && site.githubButton === "stars"
+          ? [
+              {
+                rel: "preconnect",
+                href: "https://api.github.com",
+                crossOrigin: "anonymous" as const,
+              },
+            ]
+          : []),
         { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
@@ -71,6 +102,8 @@ function RootDocument({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {gtmId && (
           <>
+            {/* open the GTM connection before the async script tag is reached */}
+            <link rel="preconnect" href="https://www.googletagmanager.com" />
             <script
               dangerouslySetInnerHTML={{
                 __html:
