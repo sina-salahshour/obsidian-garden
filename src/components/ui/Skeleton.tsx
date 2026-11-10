@@ -9,9 +9,10 @@ export function PostCardSkeleton() {
     <div className="rounded-2xl border border-line p-5 sm:p-6" aria-hidden="true">
       <Skeleton className="h-3 w-32" />
       <Skeleton className="mt-4 h-6 w-4/5" />
-      <Skeleton className="mt-3 h-4 w-full" />
+      <Skeleton className="mt-3 h-6 w-1/2" />
+      <Skeleton className="mt-4 h-4 w-full" />
       <Skeleton className="mt-2 h-4 w-2/3" />
-      <div className="mt-5 flex gap-2">
+      <div className="mt-6 flex gap-2">
         <Skeleton className="h-6 w-16 rounded-full" />
         <Skeleton className="h-6 w-20 rounded-full" />
       </div>

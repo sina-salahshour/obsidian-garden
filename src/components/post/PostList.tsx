@@ -32,7 +32,8 @@ export function PostList({
               initial={false}
               exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15 } }}
               transition={{ layout: spring.layout }}
-              className="enter"
+              // lifted while its card shows the peek popover, so the popover paints over the neighbouring cards
+              className="enter relative has-[[data-peek]]:z-20"
               style={{ "--i": i } as React.CSSProperties}
             >
               <PostCard
