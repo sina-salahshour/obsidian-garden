@@ -2,7 +2,8 @@ import { describe, expect, test } from "vite-plus/test";
 import type { SiteAuthor } from "~/content/types";
 import { site } from "~/site.config";
 import { robotsTxt } from "./robots";
-import { ogLocale, pageTitle, repeatedMetaExtras, seo, socialImage } from "./seo";
+import shots from "./og-shots.json";
+import { ogLocale, pageShot, pageTitle, repeatedMetaExtras, seo, socialImage } from "./seo";
 import { escapeXml } from "./xml";
 
 const origin = "https://example.com";
@@ -33,6 +34,12 @@ describe("seo", () => {
       "/attachments/c.jpg",
     );
     expect(socialImage(null, "/attachments/cover.SVG")).toBe(site.image ?? "/og.png");
+  });
+
+  test("pageShot finds a page's screenshot card only when one was taken", () => {
+    const [first] = shots;
+    if (first) expect(pageShot(first.replace(/^\/og/, "").replace(/\.jpg$/, ""))).toBe(first);
+    expect(pageShot("/posts/no-such-note")).toBeUndefined();
   });
 
   test("ogLocale uses the language_TERRITORY form", () => {

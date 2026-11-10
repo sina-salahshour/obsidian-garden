@@ -12,7 +12,7 @@ import { formatDate, formatDuration, isoDate, plural } from "~/lib/format";
 import { motion } from "motion/react";
 import { enter, hoverTrigger } from "~/lib/motion";
 import { breadcrumbNode, courseNode } from "~/lib/schema";
-import { seo, siteUrlFrom, socialImage } from "~/lib/seo";
+import { pageShot, seo, siteUrlFrom, socialImage } from "~/lib/seo";
 import { resolveAuthors, site } from "~/site.config";
 
 /** The course's most common tags (a keyword list, not every tag any part carries). */
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/series/$folder")({
     const { folder, parts } = loaderData;
     const path = `/series/${folder.slug}`;
     const description = folder.description || `${folder.count} parts, in order.`;
-    const image = socialImage(folder.socialImage, folder.cover);
+    const image = socialImage(folder.socialImage, pageShot(path), folder.cover);
     const authors = resolveAuthors(folder.authors);
     return seo({
       siteUrl,

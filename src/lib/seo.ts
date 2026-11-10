@@ -1,6 +1,7 @@
 import type { SiteAuthor } from "~/content/types";
 import { absUrl, jsonLdScript, personNode, websiteNode, type JsonLdNode } from "~/lib/schema";
 import { site } from "~/site.config";
+import shots from "./og-shots.json";
 
 type Meta = Record<string, string>;
 
@@ -39,11 +40,24 @@ export function pageTitle(title?: string) {
   return title ? `${title} · ${site.title}` : site.title;
 }
 
+/** Page screenshots taken by scripts/og-screenshots.ts (`pnpm og`), all 1200x630. */
+const SHOTS = new Set<string>(shots);
+
+/**
+ * The page's own social card: a 1200x630 screenshot of its first view (`/og/<page path>.jpg`), when
+ * `pnpm og` has taken one, else undefined. Pass it to socialImage() after an explicit `social-image`.
+ */
+export function pageShot(pagePath: string): string | undefined {
+  const shot = `/og${pagePath}.jpg`;
+  return SHOTS.has(shot) ? shot : undefined;
+}
+
 const isSvg = (src: string) => /\.svg(?:[?#]|$)/i.test(src);
 
 /**
- * Size of the site-wide social cards (`/og.png` and the site note's `socialImage`): both are made at
- * 1200x630. Per-post images have no known size, so og:image:width/height are only sent for these.
+ * Size of the site-wide social cards (`/og.png` and the site note's `socialImage`) and of the page
+ * screenshots: all are made at 1200x630. Other per-post images have no known size, so
+ * og:image:width/height are only sent for these.
  */
 const DEFAULT_IMAGE = { width: "1200", height: "630" };
 const IMAGE_TYPES: Record<string, string> = {
@@ -104,7 +118,7 @@ function imageDetails(path: string): Meta[] {
   const ext = /\.([a-z0-9]+)(?:[?#]|$)/i.exec(path)?.[1]?.toLowerCase();
   const type = ext ? IMAGE_TYPES[ext] : undefined;
   const out: Meta[] = type ? [{ property: "og:image:type", content: type }] : [];
-  if (path === "/og.png" || path === site.image)
+  if (path === "/og.png" || path === site.image || SHOTS.has(path))
     out.push(
       { property: "og:image:width", content: DEFAULT_IMAGE.width },
       { property: "og:image:height", content: DEFAULT_IMAGE.height },

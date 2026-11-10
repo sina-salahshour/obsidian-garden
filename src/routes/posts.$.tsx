@@ -18,7 +18,7 @@ import { formatDate, formatReading, isoDate } from "~/lib/format";
 import { motion } from "motion/react";
 import { enter, hoverTrigger } from "~/lib/motion";
 import { articleNode, breadcrumbNode } from "~/lib/schema";
-import { seo, siteUrlFrom, socialImage } from "~/lib/seo";
+import { pageShot, seo, siteUrlFrom, socialImage } from "~/lib/seo";
 import { resolveAuthors, site } from "~/site.config";
 
 export const Route = createFileRoute("/posts/$")({
@@ -51,7 +51,13 @@ export const Route = createFileRoute("/posts/$")({
     if (!loaderData) return seo({ siteUrl, title: "Note not found", noindex: true });
     const { meta, folder } = loaderData;
     const path = `/posts/${meta.slug}`;
-    const image = socialImage(meta.socialImage, meta.cover, folder?.socialImage, folder?.cover);
+    const image = socialImage(
+      meta.socialImage,
+      pageShot(path),
+      meta.cover,
+      folder?.socialImage,
+      folder?.cover,
+    );
     // A part without its own byline inherits the course's authors (then the site's default author).
     const authors = resolveAuthors(meta.authors.length ? meta.authors : (folder?.authors ?? []));
     return seo({

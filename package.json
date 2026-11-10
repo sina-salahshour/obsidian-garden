@@ -10,7 +10,8 @@
     "start": "node .output/server/index.mjs",
     "prepare": "vp config",
     "sync": "node scripts/sync-vault.ts",
-    "sync:watch": "node scripts/sync-vault.ts --watch"
+    "sync:watch": "node scripts/sync-vault.ts --watch",
+    "og": "node scripts/og-screenshots.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.3.0",
