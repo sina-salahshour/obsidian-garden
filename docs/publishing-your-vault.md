@@ -89,10 +89,11 @@ Commands:
 | `pnpm sync --dry-run` | Report what would change without writing anything |
 
 The sync never writes to your vault. Vault folders whose names start with `.` (such as `.obsidian`) and folders named
-`templates`, `_templates` or `node_modules` are skipped. Notes are `.md` and `.mdx`; attachments are images (png, jpg,
-gif, webp, avif, bmp, svg, ico), PDF, audio (mp3, wav, m4a, ogg, flac) and video (webm, mp4, mov, mkv, ogv). Only
-attachments that a published note actually references (embeds, images, or the frontmatter `cover` / `image` /
-`banner`) are copied.
+`templates`, `_templates` or `node_modules` are skipped. Notes are `.md` and `.mdx`; MDX companion modules
+(`.ts`, `.tsx`, `.js`, `.jsx`, `.css`) are copied into `content/` next to the note so relative imports work;
+attachments are images (png, jpg, gif, webp, avif, bmp, svg, ico), PDF, audio (mp3, wav, m4a, ogg, flac) and video
+(webm, mp4, mov, mkv, ogv). Only attachments that a published note actually references (embeds, images, or the
+frontmatter `cover` / `image` / `banner`) are copied.
 
 (`node scripts/sync-vault.ts --dry-run` is the underlying command.)
 

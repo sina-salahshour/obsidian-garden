@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
+  classifyModules,
   classifyNotes,
   contentPathFor,
   extractAttachmentRefs,
@@ -7,6 +8,7 @@ import {
   planAttachments,
   type NoteState,
   injectCreated,
+  isModuleFile,
   isSkippedDir,
   prepareNote,
   shouldPublish,
@@ -211,5 +213,27 @@ describe("visibility classification", () => {
     const { states } = classifyNotes([note("f/a.md", { private: true }), note("f/b.md")], none);
     expect(states.get("f/a.md")).toBe("private");
     expect(states.get("f/b.md")).toBe("public");
+  });
+});
+
+describe("mdx companion modules", () => {
+  it("recognises module extensions", () => {
+    expect(isModuleFile("demo.tsx")).toBe(true);
+    expect(isModuleFile("util.ts")).toBe(true);
+    expect(isModuleFile("styles.module.css")).toBe(true);
+    expect(isModuleFile("note.mdx")).toBe(false);
+    expect(isModuleFile("cover.svg")).toBe(false);
+  });
+
+  it("inherits folder visibility (no per-file frontmatter)", () => {
+    const notes = [note("a/x.md"), note("secret/y.md")];
+    const states = classifyModules(["a/demo.tsx", "secret/widget.tsx", "root.ts"], notes, {
+      private: new Set(["secret"]),
+      nopublish: new Set(["_authoring"]),
+    });
+    expect(states.get("a/demo.tsx")).toBe("public");
+    expect(states.get("secret/widget.tsx")).toBe("private");
+    expect(states.get("root.ts")).toBe("public");
+    expect(contentPathFor("secret/widget.tsx", "private")).toBe("_private/secret/widget.tsx");
   });
 });

@@ -9,11 +9,13 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildSiteData,
+  classifyModules,
   classifyNotes,
   contentPathFor,
   emptySummary,
   formatSummary,
   isAttachmentFile,
+  isModuleFile,
   isNoteFile,
   isSkippedDir,
   partitionSiteNotes,
@@ -40,6 +42,8 @@ const toPosix = (p: string) => p.split(sep).join("/");
 
 interface VaultScan {
   notes: string[];
+  /** MDX companion modules (.tsx, .ts, …) synced into content/ for relative imports */
+  modules: string[];
   attachments: string[];
   privateMarkers: Set<string>;
   nopublishMarkers: Set<string>;
@@ -48,6 +52,7 @@ interface VaultScan {
 async function scanVault(): Promise<VaultScan> {
   const scan: VaultScan = {
     notes: [],
+    modules: [],
     attachments: [],
     privateMarkers: new Set(),
     nopublishMarkers: new Set(),
@@ -64,6 +69,7 @@ async function scanVault(): Promise<VaultScan> {
         else if (entry.name === ".nopublish") scan.nopublishMarkers.add(rel);
         else if (entry.name.startsWith(".")) continue;
         else if (isNoteFile(entry.name)) scan.notes.push(toPosix(relative(vaultDir, abs)));
+        else if (isModuleFile(entry.name)) scan.modules.push(toPosix(relative(vaultDir, abs)));
         else if (isAttachmentFile(entry.name))
           scan.attachments.push(toPosix(relative(vaultDir, abs)));
       }
@@ -71,6 +77,7 @@ async function scanVault(): Promise<VaultScan> {
   };
   await walk(vaultDir);
   scan.notes.sort();
+  scan.modules.sort();
   scan.attachments.sort();
   return scan;
 }
@@ -174,6 +181,27 @@ export async function sync(): Promise<SyncSummary> {
     expected.add(target);
     const out = prepareNote(sources.get(note.path)!, await createdIso(join(vaultDir, note.path)));
     const change = await writeIfChanged(join(contentDir, target), out);
+    if (change === "added") summary.added.push(target);
+    else if (change === "updated") summary.updated.push(target);
+  }
+
+  // Companion modules for .mdx (relative imports). Same visibility path rules as notes.
+  const moduleStates = classifyModules(scan.modules, notes, {
+    private: scan.privateMarkers,
+    nopublish: scan.nopublishMarkers,
+  });
+  for (const path of scan.modules) {
+    const state = moduleStates.get(path) ?? "excluded";
+    const target = contentPathFor(path, state);
+    if (!target) {
+      summary.skipped.push(path);
+      continue;
+    }
+    expected.add(target);
+    const change = await writeIfChanged(
+      join(contentDir, target),
+      await readFile(join(vaultDir, path)),
+    );
     if (change === "added") summary.added.push(target);
     else if (change === "updated") summary.updated.push(target);
   }

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+/* Vault MDX companion modules land in content/; scan them so demo Tailwind classes are kept. */
+@source "../../content";
 
 @import "@fontsource-variable/inter/opsz.css";
 @import "@fontsource-variable/newsreader/opsz.css";

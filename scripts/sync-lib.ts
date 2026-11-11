@@ -21,6 +21,9 @@ export { PRIVATE_DIR };
 
 export const NOTE_EXTENSIONS = [".md", ".mdx"];
 
+/** Co-located modules an `.mdx` note may import (synced into content/ next to the note). */
+export const MODULE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".css"]);
+
 export const ATTACHMENT_EXTENSIONS = new Set([
   ".png",
   ".jpg",
@@ -72,6 +75,13 @@ export function isNoteFile(file: string): boolean {
 
 export function isAttachmentFile(file: string): boolean {
   return ATTACHMENT_EXTENSIONS.has(extname(file));
+}
+
+/** True for vault files an MDX note may import (React demos, helpers, local CSS). */
+export function isModuleFile(file: string): boolean {
+  const base = basename(file).toLowerCase();
+  if (base.endsWith(".module.css")) return true;
+  return MODULE_EXTENSIONS.has(extname(file));
 }
 
 export interface SplitNote {
@@ -320,17 +330,12 @@ function ownState(data: Record<string, unknown>, body: string): NoteState {
   return "public";
 }
 
-/**
- * Decides every note's state. Directory trees cascade: a `.nopublish` / `.private` marker or the
- * folder note's own `publish: false|draft: true` / `visibility: private|private: true` applies to
- * every note and subfolder below. Descendants cannot opt back to public (warned).
- */
-export function classifyNotes(notes: readonly VaultNote[], markers: DirMarkers): Classification {
+/** Folder-tree visibility used by notes and by co-located MDX modules. */
+function createDirState(notes: readonly VaultNote[], markers: DirMarkers) {
   const byPath = new Map(notes.map((n) => [n.path, n]));
   const paths = new Set(byPath.keys());
   const dirs = collectDirs(paths);
   for (const d of [...markers.private, ...markers.nopublish]) if (d) dirs.add(d);
-  const warnings: string[] = [];
   const memo = new Map<string, NoteState>();
 
   const dirState = (dir: string): NoteState => {
@@ -346,6 +351,17 @@ export function classifyNotes(notes: readonly VaultNote[], markers: DirMarkers):
     return state;
   };
 
+  return { dirState, paths, dirs };
+}
+
+/**
+ * Decides every note's state. Directory trees cascade: a `.nopublish` / `.private` marker or the
+ * folder note's own `publish: false|draft: true` / `visibility: private|private: true` applies to
+ * every note and subfolder below. Descendants cannot opt back to public (warned).
+ */
+export function classifyNotes(notes: readonly VaultNote[], markers: DirMarkers): Classification {
+  const { dirState, paths, dirs } = createDirState(notes, markers);
+  const warnings: string[] = [];
   const states = new Map<string, NoteState>();
   for (const note of notes) {
     const folderDir = folderNoteDirFor(note.path, paths, dirs);
@@ -357,6 +373,21 @@ export function classifyNotes(notes: readonly VaultNote[], markers: DirMarkers):
     states.set(note.path, state);
   }
   return { states, warnings };
+}
+
+/**
+ * Visibility for MDX companion modules (`.tsx` / `.ts` / …). They inherit their folder tree only
+ * (no per-file frontmatter): same path mapping as notes via {@link contentPathFor}.
+ */
+export function classifyModules(
+  modules: readonly string[],
+  notes: readonly VaultNote[],
+  markers: DirMarkers,
+): Map<string, NoteState> {
+  const { dirState } = createDirState(notes, markers);
+  const states = new Map<string, NoteState>();
+  for (const path of modules) states.set(path, dirState(dirOf(path)));
+  return states;
 }
 
 /** Where a classified note is written inside content/. */

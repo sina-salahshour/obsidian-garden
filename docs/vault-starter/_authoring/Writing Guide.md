@@ -9,7 +9,8 @@ Rules for writing notes in this vault so they publish correctly through the `obs
 
 ## Publishing flow
 
-1. Write in Obsidian, in normal Obsidian-flavoured Markdown (`.md`). `.mdx` also works if a note needs JSX.
+1. Write in Obsidian, in normal Obsidian-flavoured Markdown (`.md`). `.mdx` also works if a note needs JSX
+   (and co-located React demos — see Interactive MDX below).
 2. In the `obsidian-blog` checkout: `pnpm sync` (or `pnpm sync:watch` while writing), check with `pnpm dev`.
 3. Commit `content/` and `public/attachments/`, push. Your host (Vercel) builds from the repo; it never sees this vault.
 
@@ -146,6 +147,25 @@ You control the inputs:
 - Footnotes `[^1]`, tables, task lists, `==highlight==`, `$inline$` and `$$block$$` math (KaTeX).
 - `%%comments%%` and block ids (` ^id`) are stripped from the published page.
 - Raw HTML inside `.md` is not rendered (Markdown mode); use Markdown, or write the note as `.mdx`.
+
+## Interactive MDX
+
+For a live demo in a note, use `.mdx` and keep the React module **in this vault** next to the note (or in a
+folder the note can import). The sync copies companion modules into `content/` with the same visibility rules
+as notes (folder `.private` / `.nopublish` / folder-note cascade). Do not put demos in the blog repo.
+
+```mdx
+import { Demo } from "./demo.tsx";
+
+# Title
+
+<Demo />
+```
+
+Allowed companion extensions: `.ts`, `.tsx`, `.js`, `.jsx`, `.css` (and `*.module.css`). Import with a
+**relative** path (include the extension). Depend on `react`, `react-dom`, and `motion/react` (already
+shipped by the site) plus plain CSS — not on blog internals (`~/…`). Prefer public notes for interactive
+demos; private notes are evaluated without a module graph, so relative imports there will not bundle.
 
 ## Lesson endings
 
