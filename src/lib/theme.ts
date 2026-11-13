@@ -40,7 +40,8 @@ export function setPreference(pref: ThemePreference) {
   } catch {
     /* storage unavailable: the choice still applies for this page view */
   }
-  applyTheme(resolveTheme(pref));
+  if (!document.startViewTransition) applyTheme(resolveTheme(pref));
+  document.startViewTransition(() => applyTheme(resolveTheme(pref)));
 }
 
 function subscribe(onChange: () => void) {
