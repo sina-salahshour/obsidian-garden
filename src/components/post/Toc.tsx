@@ -11,6 +11,7 @@ import { cn } from "~/lib/cn";
 import { useActiveHeading, useScrollLock } from "~/lib/hooks";
 import { fade, sheet, spring } from "~/lib/motion";
 import { ChevronDown, Close, ListIcon } from "../ui/icons";
+import { ReadingAutoScrollButton, type ReadingAutoScroll } from "./ReadingAutoScroll";
 
 function scrollToHeading(id: string) {
   const el = document.getElementById(id);
@@ -94,17 +95,30 @@ function TocList({
 }
 
 const visible = (headings: Heading[]) => headings.filter((h) => h.depth <= 3);
+const mobileIslandSurface =
+  "rounded-full border border-line bg-surface/90 shadow-[var(--shadow-md)] backdrop-blur";
 
 /** Desktop: sticky "On this page" with a sliding active indicator. */
-export function Toc({ headings, className }: { headings: Heading[]; className?: string }) {
+export function Toc({
+  headings,
+  autoScroll,
+  className,
+}: {
+  headings: Heading[];
+  autoScroll: ReadingAutoScroll;
+  className?: string;
+}) {
   const items = visible(headings);
   const active = useActiveHeading(items.map((h) => h.id));
-  if (items.length < 2) return null;
+  if (items.length < 2) return <ReadingAutoScrollButton controls={autoScroll} showLabel />;
   return (
     <nav aria-label="On this page" className={cn("text-sm", className)}>
-      <p className="mb-3 text-xs font-semibold tracking-[0.08em] text-subtle uppercase">
-        On this page
-      </p>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold tracking-[0.08em] text-subtle uppercase">
+          On this page
+        </p>
+        <ReadingAutoScrollButton controls={autoScroll} />
+      </div>
       <div className="scrollbar-thin max-h-[calc(100dvh-var(--header-h)-8rem)] overflow-y-auto overscroll-contain pr-1">
         <TocList headings={items} active={active} layoutId="toc-active" />
       </div>
@@ -116,7 +130,13 @@ export function Toc({ headings, className }: { headings: Heading[]; className?: 
  * Mobile: a floating pill showing the section you are in (with a progress ring); tap to
  * open a bottom sheet with the full outline. Drag the sheet down to dismiss.
  */
-export function MobileToc({ headings }: { headings: Heading[] }) {
+export function MobileToc({
+  headings,
+  autoScroll,
+}: {
+  headings: Heading[];
+  autoScroll: ReadingAutoScroll;
+}) {
   const items = visible(headings);
   const active = useActiveHeading(items.map((h) => h.id));
   const [open, setOpen] = useState(false);
@@ -147,58 +167,78 @@ export function MobileToc({ headings }: { headings: Heading[] }) {
     }
   }, [open]);
 
-  if (items.length < 2) return null;
-  const current = items.find((h) => h.id === active) ?? items[0]!;
+  const current = items.length >= 2 ? (items.find((h) => h.id === active) ?? items[0]) : undefined;
 
   return (
     <div className="no-print lg:hidden">
       <AnimatePresence>
-        {show && !open && (
-          <motion.button
-            ref={openerRef}
-            type="button"
-            onClick={() => setOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={open}
+        {(show || autoScroll.started) && !open && (
+          <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
-            whileTap={{ scale: 0.97 }}
             transition={spring.snappy}
-            className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-30 flex h-11 max-w-[calc(100vw-6rem)] items-center gap-2.5 rounded-full border border-line bg-surface/90 pr-4 pl-1.5 text-sm shadow-[var(--shadow-md)] backdrop-blur"
+            className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-30 flex max-w-[calc(100vw-6rem)] items-center gap-2 text-sm"
           >
-            <svg
-              viewBox="0 0 36 36"
-              className="size-8 shrink-0 -rotate-90 text-accent"
-              aria-hidden="true"
-            >
-              <circle cx="18" cy="18" r="14" fill="none" stroke="var(--line)" strokeWidth="2.5" />
-              <motion.circle
-                cx="18"
-                cy="18"
-                r="14"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                style={{ pathLength: scrollYProgress }}
-              />
-            </svg>
-            <span className="sr-only">Table of contents. Current section:</span>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={current.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18 }}
-                className="truncate font-medium"
+            {current && (
+              <motion.button
+                ref={openerRef}
+                type="button"
+                onClick={() => {
+                  autoScroll.pause();
+                  setOpen(true);
+                }}
+                aria-haspopup="dialog"
+                aria-expanded={open}
+                whileTap={{ scale: 0.97 }}
+                transition={spring.snappy}
+                className={cn(
+                  "flex h-11 min-w-0 items-center gap-2.5 pr-3 pl-1.5",
+                  mobileIslandSurface,
+                )}
               >
-                {current.text}
-              </motion.span>
-            </AnimatePresence>
-            <ChevronDown size={14} className="shrink-0 rotate-180 text-subtle" />
-          </motion.button>
+                <svg
+                  viewBox="0 0 36 36"
+                  className="size-8 shrink-0 -rotate-90 text-accent"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="var(--line)"
+                    strokeWidth="2.5"
+                  />
+                  <motion.circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    style={{ pathLength: scrollYProgress }}
+                  />
+                </svg>
+                <span className="sr-only">Table of contents. Current section:</span>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={current.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18 }}
+                    className="truncate font-medium"
+                  >
+                    {current.text}
+                  </motion.span>
+                </AnimatePresence>
+                <ChevronDown size={14} className="shrink-0 rotate-180 text-subtle" />
+              </motion.button>
+            )}
+            <ReadingAutoScrollButton controls={autoScroll} className={mobileIslandSurface} />
+          </motion.div>
         )}
       </AnimatePresence>
 

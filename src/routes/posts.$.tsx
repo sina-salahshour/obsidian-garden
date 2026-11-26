@@ -4,6 +4,7 @@ import { ReadingProgress } from "~/components/layout/ReadingProgress";
 import { Backlinks, RelatedPosts } from "~/components/post/Backlinks";
 import { PostBody } from "~/components/post/PostBody";
 import { PrevNext } from "~/components/post/PrevNext";
+import { ReadingAutoScrollButton, useReadingAutoScroll } from "~/components/post/ReadingAutoScroll";
 import { MobileToc, Toc } from "~/components/post/Toc";
 import { SeriesCover } from "~/components/series/SeriesCover";
 import { SeriesProgress } from "~/components/series/SeriesProgress";
@@ -111,9 +112,16 @@ export const Route = createFileRoute("/posts/$")({
 });
 
 function PostPage() {
+  const slug = Route.useParams({ select: (params) => params._splat });
+  return <PostArticle key={slug} />;
+}
+
+function PostArticle() {
   const data = Route.useLoaderData();
   const { meta, prev, next, backlinks, folder, series, related, coverSvg } = data;
   const article = useRef<HTMLElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const autoScroll = useReadingAutoScroll(body);
   const isPrivate = meta.visibility === "private";
 
   return (
@@ -200,29 +208,32 @@ function PostPage() {
                 </p>
               )}
               <div {...enter(4)}>
-                <dl className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-                  <motion.div {...hoverTrigger} className="flex items-center gap-1.5">
-                    <dt className="sr-only">Published</dt>
-                    <Calendar size={14} className="text-subtle" />
-                    <dd>
-                      <time dateTime={isoDate(meta.date)}>{formatDate(meta.date)}</time>
-                    </dd>
-                  </motion.div>
-                  {meta.updated && meta.updated.slice(0, 10) !== meta.date.slice(0, 10) && (
-                    <div className="flex items-center gap-1.5">
-                      <dt>Updated</dt>
+                <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <dl className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+                    <motion.div {...hoverTrigger} className="flex items-center gap-1.5">
+                      <dt className="sr-only">Published</dt>
+                      <Calendar size={14} className="text-subtle" />
                       <dd>
-                        <time dateTime={isoDate(meta.updated)}>{formatDate(meta.updated)}</time>
+                        <time dateTime={isoDate(meta.date)}>{formatDate(meta.date)}</time>
                       </dd>
-                    </div>
-                  )}
-                  <motion.div {...hoverTrigger} className="flex items-center gap-1.5">
-                    <dt className="sr-only">Reading time</dt>
-                    <Clock size={14} className="text-subtle" />
-                    <dd>{formatReading(meta.readingMinutes)}</dd>
-                  </motion.div>
-                  {isPrivate && <PrivateBadge />}
-                </dl>
+                    </motion.div>
+                    {meta.updated && meta.updated.slice(0, 10) !== meta.date.slice(0, 10) && (
+                      <div className="flex items-center gap-1.5">
+                        <dt>Updated</dt>
+                        <dd>
+                          <time dateTime={isoDate(meta.updated)}>{formatDate(meta.updated)}</time>
+                        </dd>
+                      </div>
+                    )}
+                    <motion.div {...hoverTrigger} className="flex items-center gap-1.5">
+                      <dt className="sr-only">Reading time</dt>
+                      <Clock size={14} className="text-subtle" />
+                      <dd>{formatReading(meta.readingMinutes)}</dd>
+                    </motion.div>
+                    {isPrivate && <PrivateBadge />}
+                  </dl>
+                  <ReadingAutoScrollButton controls={autoScroll} showLabel />
+                </div>
                 {series.length > 1 && folder && (
                   <SeriesProgress
                     className="mt-6"
@@ -235,7 +246,7 @@ function PostPage() {
               </div>
             </header>
 
-            <div className="mt-10 border-t border-line pt-10 sm:mt-12 sm:pt-12">
+            <div ref={body} className="mt-10 border-t border-line pt-10 sm:mt-12 sm:pt-12">
               <Suspense fallback={<BodySkeleton />}>
                 <PostBody slug={meta.slug} />
               </Suspense>
@@ -266,12 +277,12 @@ function PostPage() {
 
           <aside className="hidden lg:block" aria-label="Table of contents">
             <div className="sticky top-[calc(var(--header-h)+2rem)]">
-              <Toc headings={meta.headings} />
+              <Toc headings={meta.headings} autoScroll={autoScroll} />
             </div>
           </aside>
         </div>
       </main>
-      <MobileToc headings={meta.headings} />
+      <MobileToc headings={meta.headings} autoScroll={autoScroll} />
     </>
   );
 }
