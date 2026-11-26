@@ -10,9 +10,10 @@ const rays = Array.from({ length: 8 }, (_, i) => i * 45);
  * in to carve the crescent, and the rays spin away. One SVG, three animated attributes.
  */
 export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, toggle } = useTheme();
+  const { theme, toggle, canToggle } = useTheme();
   const dark = theme === "dark";
   const label = theme ? `Switch to ${dark ? "light" : "dark"} theme` : "Toggle theme";
+  if (theme && !canToggle) return null;
   return (
     <button
       type="button"
@@ -20,7 +21,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={label}
       title={label}
       className={cn(
-        "relative inline-flex size-10 items-center justify-center rounded-full text-muted transition-colors hover:bg-sunken hover:text-fg",
+        "theme-toggle relative inline-flex size-10 items-center justify-center rounded-full text-muted transition-colors hover:bg-sunken hover:text-fg",
         className,
       )}
     >

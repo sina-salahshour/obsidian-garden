@@ -12,6 +12,10 @@
 /* Dark mode follows data-theme on <html> (set before paint by the inline theme script). */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+:root[data-theme-locked="true"] .theme-toggle {
+  display: none;
+}
+
 /* ---------------------------------------------------------------------------------------
    Design tokens. Base tokens are plain hex so JS (Mermaid, the graph canvas) can read them
    with getComputedStyle; derived tints use color-mix in CSS.

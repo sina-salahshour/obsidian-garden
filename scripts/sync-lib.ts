@@ -16,6 +16,7 @@ import {
 } from "../src/content/attachments.ts";
 import { slugifySegment } from "../src/content/slug.ts";
 import { normalizeHeroTitles } from "../src/content/hero-titles.ts";
+import { parseColorPalettes } from "../src/content/color-palettes.ts";
 import type { GithubButton, SiteAuthor, SiteData } from "../src/content/types.ts";
 
 export { PRIVATE_DIR };
@@ -662,6 +663,17 @@ export function buildSiteData(
         "hero-description",
         typeof heroDescription === "string" ? str(heroDescription) : null,
       );
+      if (has("color-palettes")) {
+        const result = parseColorPalettes(fm["color-palettes"]);
+        warnings.push(
+          ...result.warnings.map((warning) => `${note.path}: color-palettes: ${warning}`),
+        );
+        if (
+          result.palettes.length ||
+          (Array.isArray(fm["color-palettes"]) && !result.warnings.length)
+        )
+          assign("colorPalettes", "color-palettes", result.palettes);
+      }
       if (has("url")) {
         const url = httpUrl(fm.url, `${note.path}: url`, warnings);
         assign("url", "url", url ? url.replace(/\/+$/, "") : null);
@@ -759,6 +771,7 @@ export function buildSiteData(
     description: set.description ?? fallbackDescription ?? SITE_DEFAULTS.description,
     heroTitle: set.heroTitle ?? null,
     heroDescription: set.heroDescription ?? null,
+    colorPalettes: set.colorPalettes ?? [],
     locale: set.locale ?? SITE_DEFAULTS.locale,
     url: set.url ?? null,
     image: set.image ?? null,

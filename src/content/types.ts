@@ -1,4 +1,5 @@
 // Shared content contract. Owned by the architect; change only by agreement.
+import type { ColorPalette } from "./color-palettes.ts";
 
 export interface Heading {
   depth: 2 | 3 | 4;
@@ -172,6 +173,7 @@ export interface SiteData {
   description: string;
   heroTitle: string[] | null;
   heroDescription: string | null;
+  colorPalettes: ColorPalette[];
   /** BCP-47, e.g. "en" */
   locale: string;
   /** canonical origin without a trailing slash, e.g. "https://example.com"; null when unset */

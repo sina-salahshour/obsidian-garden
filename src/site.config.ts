@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { SiteAuthor, SiteData } from "./content/types.ts";
 import { slugifySegment } from "./content/slug.ts";
 import { normalizeHeroTitles } from "./content/hero-titles.ts";
+import { parseColorPalettes } from "./content/color-palettes.ts";
 
 export type { SiteAuthor, SiteData };
 
@@ -33,6 +34,10 @@ const siteSchema = z.object({
   description: z.string().min(1).catch(DEFAULT_DESCRIPTION).default(DEFAULT_DESCRIPTION),
   heroTitle: z.unknown().optional().transform(normalizeHeroTitles),
   heroDescription: heroText,
+  colorPalettes: z
+    .unknown()
+    .optional()
+    .transform((value) => parseColorPalettes(value).palettes),
   locale: z.string().min(1).catch("en").default("en"),
   url: nullableStr,
   image: nullableStr,

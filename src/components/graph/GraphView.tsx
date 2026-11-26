@@ -72,7 +72,7 @@ export function GraphView({
   useEffect(() => {
     openRef.current = onOpen;
   }, [onOpen]);
-  const { theme } = useTheme();
+  const { theme, palette } = useTheme();
 
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -701,7 +701,7 @@ export function GraphView({
 
   useEffect(() => {
     engine.current?.repaint();
-  }, [theme]);
+  }, [theme, palette]);
 
   useEffect(() => {
     if (!selected) return;

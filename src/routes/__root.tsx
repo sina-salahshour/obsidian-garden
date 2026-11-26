@@ -10,7 +10,7 @@ import { CommandPalette, type SearchFn } from "~/components/search/CommandPalett
 import { ErrorView, NotFound } from "~/components/ui/States";
 import { getSiteUrl, searchPosts } from "~/content/functions";
 import { repeatedMetaExtras, seo } from "~/lib/seo";
-import { THEME_COLORS, themeScript } from "~/lib/theme";
+import { THEME_COLORS, createThemeScript, paletteStyles } from "~/lib/theme-script";
 import { site } from "~/site.config";
 import appCss from "~/styles/app.css?url";
 // The two faces every page paints with above the fold (UI sans, title serif). Preloaded so they are
@@ -20,6 +20,10 @@ import interLatin from "@fontsource-variable/inter/files/inter-latin-opsz-normal
 import newsreaderLatin from "@fontsource-variable/newsreader/files/newsreader-latin-opsz-normal.woff2?url";
 
 const gtmId = import.meta.env.VITE_GTM_ID?.trim();
+const defaultPalette = site.colorPalettes[0];
+const defaultMode = defaultPalette && !defaultPalette.light ? "dark" : "light";
+const themeScript = createThemeScript(site.colorPalettes);
+const colorStyles = paletteStyles(site.colorPalettes);
 
 export const Route = createRootRoute({
   // The absolute origin is resolved once on the server and reused by every route's head() for canonical/og URLs.
@@ -42,7 +46,6 @@ export const Route = createRootRoute({
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         { name: "color-scheme", content: "light dark" },
-        // theme-color is rendered in RootDocument: head meta is deduped by name, so the pair would collapse.
         { property: "og:site_name", content: site.title },
         { name: "author", content: site.author },
         // og:image size/type describe one specific image: leave them to the page's own seo() so a page with
@@ -96,10 +99,25 @@ const search: SearchFn = (q) => searchPosts({ data: { q, limit: 12 } });
 function RootDocument({ children }: { children: ReactNode }) {
   return (
     // data-theme / color-scheme are written by the inline script before paint, so the server markup differs on purpose
-    <html lang={site.locale} suppressHydrationWarning>
+    <html
+      lang={site.locale}
+      data-palette={defaultPalette?.id ?? "garden"}
+      data-theme={defaultMode}
+      data-theme-locked={String(
+        Boolean(defaultPalette && (!defaultPalette.light || !defaultPalette.dark)),
+      )}
+      suppressHydrationWarning
+    >
       <head>
+        <meta
+          id="site-theme-color"
+          name="theme-color"
+          content={defaultPalette?.[defaultMode]?.bg ?? THEME_COLORS[defaultMode]}
+          suppressHydrationWarning
+        />
         {/* must run before first paint: no theme flash */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {colorStyles && <style dangerouslySetInnerHTML={{ __html: colorStyles }} />}
         {gtmId && (
           <>
             {/* open the GTM connection before the async script tag is reached */}
@@ -116,13 +134,6 @@ function RootDocument({ children }: { children: ReactNode }) {
             />
           </>
         )}
-        {/* two theme-colors (one per scheme): written here because head() meta keeps one per name */}
-        <meta
-          name="theme-color"
-          media="(prefers-color-scheme: light)"
-          content={THEME_COLORS.light}
-        />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content={THEME_COLORS.dark} />
         <HeadContent />
         <RepeatedMeta />
       </head>

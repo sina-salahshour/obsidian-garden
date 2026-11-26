@@ -5,6 +5,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { THEME_COLORS } from "../lib/theme-script.ts";
 import { site } from "../site.config.ts";
 
+const defaultPalette = site.colorPalettes[0];
+const background = defaultPalette?.light?.bg ?? defaultPalette?.dark?.bg ?? THEME_COLORS.light;
+
 export const Route = createFileRoute("/manifest.webmanifest")({
   server: {
     handlers: {
@@ -18,8 +21,8 @@ export const Route = createFileRoute("/manifest.webmanifest")({
             id: "/",
             start_url: "/",
             display: "standalone",
-            background_color: THEME_COLORS.light,
-            theme_color: THEME_COLORS.light,
+            background_color: background,
+            theme_color: background,
             icons: [
               { src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
               { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

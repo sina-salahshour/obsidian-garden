@@ -7,6 +7,8 @@ import { findRanges } from "~/lib/highlight";
 import { useDebounced } from "~/lib/hooks";
 import { pop, spring } from "~/lib/motion";
 import { palette, usePaletteOpen } from "~/lib/palette";
+import { clearPalettePreview, previewColorPalette, setColorPalette, useTheme } from "~/lib/theme";
+import { site } from "~/site.config";
 import { PrivateBadge } from "../ui/Badge";
 import { Kbd } from "../ui/Badge";
 import { CornerEnter, FileText, GraphIcon, Hash, Layers, SearchIcon } from "../ui/icons";
@@ -23,6 +25,7 @@ type Item =
       label: string;
       hint: string;
       icon: React.ReactNode;
+      paletteId?: string;
       go: () => void;
     };
 
@@ -58,7 +61,13 @@ function useShortcuts() {
 export function CommandPalette({ search }: { search: SearchFn }) {
   useShortcuts();
   const open = usePaletteOpen();
-  const close = useCallback(() => palette.close(), []);
+  const close = useCallback(() => {
+    clearPalettePreview();
+    palette.close();
+  }, []);
+  useEffect(() => {
+    if (!open) clearPalettePreview();
+  }, [open]);
   return (
     <Overlay
       open={open}
@@ -73,19 +82,23 @@ export function CommandPalette({ search }: { search: SearchFn }) {
 
 function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
   const navigate = useNavigate();
+  const { savedPalette: currentPalette, theme } = useTheme();
+  const [choosingPalette, setChoosingPalette] = useState(false);
   const [q, setQ] = useState("");
-  const dq = useDebounced(q.trim(), 110);
+  const dq = useDebounced(choosingPalette ? "" : q.trim(), 110);
   const [hits, setHits] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   // the query `hits` belong to; until it matches `dq` the results are still pending
   const [resultsFor, setResultsFor] = useState("");
   const [active, setActive] = useState(0);
   const listId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const req = useRef(0);
 
   useEffect(() => {
     if (!dq) {
+      req.current++;
       setHits([]);
       setLoading(false);
       return;
@@ -111,6 +124,22 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
     onClose();
     fn();
   };
+  const showPalettes = (show: boolean) => {
+    if (!show) clearPalettePreview();
+    setChoosingPalette(show);
+    setQ("");
+    setActive(0);
+    inputRef.current?.focus();
+  };
+  const paletteCommand: Item = {
+    kind: "link",
+    id: "change-color-palette",
+    label: "Change color palette",
+    hint: currentPalette?.name ?? "",
+    icon: <span className="size-3.5 rounded-full bg-accent" aria-hidden="true" />,
+    go: () => showPalettes(true),
+  };
+  const canChoosePalette = site.colorPalettes.length > 1;
 
   const quick: Item[] = [
     {
@@ -145,9 +174,66 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
       icon: <Layers size={16} />,
       go: () => go(() => void navigate({ to: "/" })),
     },
+    ...(canChoosePalette ? [paletteCommand] : []),
   ];
-  const items = dq ? hits : quick;
+  const query = q
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Mark}/gu, "");
+  const choices: Item[] = choosingPalette
+    ? site.colorPalettes.flatMap((entry) => {
+        if (
+          ![entry.id, entry.name].some((name) =>
+            name
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/\p{Mark}/gu, "")
+              .includes(query),
+          )
+        )
+          return [];
+        const colors = entry[theme ?? "light"] ?? entry.light ?? entry.dark;
+        const mode =
+          entry.light && entry.dark ? "Light and dark" : entry.light ? "Light only" : "Dark only";
+        return [
+          {
+            kind: "link",
+            id: `color-palette-${entry.id}`,
+            paletteId: entry.id,
+            label: entry.name,
+            hint: entry.id === currentPalette?.id ? `Current · ${mode}` : mode,
+            icon: (
+              <span
+                className="size-3.5 rounded-full"
+                style={{ backgroundColor: colors?.accent }}
+                aria-hidden="true"
+              />
+            ),
+            go: () => {
+              setColorPalette(entry.id);
+              onClose();
+            },
+          },
+        ];
+      })
+    : [];
+  const matchesCommand =
+    canChoosePalette &&
+    query.length > 0 &&
+    ["change color palette", "color palette", "theme"].some((label) => label.includes(query));
+  const items = choosingPalette
+    ? choices
+    : dq || matchesCommand
+      ? [...(matchesCommand ? [paletteCommand] : []), ...(resultsFor === dq ? hits : [])]
+      : quick;
   const activeIndex = Math.min(active, Math.max(0, items.length - 1));
+
+  const activate = (index: number) => {
+    setActive(index);
+    const item = items[index];
+    if (item?.kind === "link" && item.paletteId) previewColorPalette(item.paletteId);
+  };
 
   const openItem = (item: Item | undefined) => {
     if (!item) return;
@@ -159,35 +245,37 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
     listRef.current
       ?.querySelector(`[data-index="${activeIndex}"]`)
       ?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex]);
+  }, [activeIndex, choosingPalette]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      setActive((i) => (items.length ? (i + 1) % items.length : 0));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActive((i) => (items.length ? (i - 1 + items.length) % items.length : 0));
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      activate(items.length ? (activeIndex + step + items.length) % items.length : 0);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (e.metaKey || e.ctrlKey) {
+      if (!choosingPalette && (e.metaKey || e.ctrlKey)) {
         go(() => void navigate({ to: "/search", search: { q: q.trim() } }));
       } else openItem(items[activeIndex]);
     } else if (e.key === "Home" && e.altKey) {
-      setActive(0);
+      activate(0);
+    } else if (choosingPalette && e.key === "Backspace" && !q) {
+      e.preventDefault();
+      showPalettes(false);
     }
   };
 
   const optionId = (i: number) => `${listId}-opt-${i}`;
   const settled = !!dq && !loading && resultsFor === dq;
   const hasList = items.length > 0;
-  const status = !dq
-    ? ""
-    : !settled
-      ? "Searching…"
-      : hits.length === 0
-        ? "No results"
-        : `${hits.length} ${hits.length === 1 ? "result" : "results"}`;
+  const status =
+    choosingPalette || !dq
+      ? ""
+      : !settled
+        ? "Searching…"
+        : hits.length === 0
+          ? "No results"
+          : `${hits.length} ${hits.length === 1 ? "result" : "results"}`;
 
   return (
     <motion.div
@@ -195,21 +283,36 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
       initial="hidden"
       animate="show"
       exit="exit"
+      onKeyDown={(event) => {
+        if (
+          choosingPalette &&
+          event.key === "ArrowLeft" &&
+          !event.altKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.shiftKey
+        ) {
+          event.preventDefault();
+          showPalettes(false);
+        }
+      }}
       className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh-8rem))] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-lg)]"
     >
       {/* the row's accent underline (has-[input:focus]) is the input's focus indicator */}
       <div className="flex items-center gap-3 border-b border-line px-4 transition-shadow has-[input:focus]:shadow-[inset_0_-2px_0_var(--ring)]">
         <SearchIcon size={18} className="shrink-0 text-subtle" />
         <input
+          ref={inputRef}
           autoFocus
           value={q}
           onChange={(e) => {
+            if (choosingPalette) clearPalettePreview();
             setQ(e.target.value);
             setActive(0);
           }}
           onKeyDown={onKeyDown}
-          placeholder="Search notes…"
-          aria-label="Search notes"
+          placeholder={choosingPalette ? "Filter color palettes…" : "Search notes…"}
+          aria-label={choosingPalette ? "Filter color palettes" : "Search notes"}
           role="combobox"
           aria-expanded={hasList}
           aria-controls={hasList ? listId : undefined}
@@ -221,7 +324,7 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
           className="h-14 min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-subtle"
         />
         <AnimatePresence>
-          {loading && (
+          {loading && !choosingPalette && (
             <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1, rotate: 360 }}
@@ -246,11 +349,18 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
       </div>
 
       <div className="scrollbar-thin flex-1 overflow-y-auto overscroll-contain p-2">
-        {!dq && <p className="px-3 pt-2 pb-1.5 text-xs font-medium text-subtle">Jump to</p>}
+        {(choosingPalette || !dq) && (
+          <p className="px-3 pt-2 pb-1.5 text-xs font-medium text-subtle">
+            {choosingPalette ? "Color palettes" : "Jump to"}
+          </p>
+        )}
         <p role="status" aria-live="polite" className="sr-only">
           {status}
         </p>
-        {settled && hits.length === 0 && (
+        {choosingPalette && !hasList && (
+          <p className="px-3 py-4 text-sm text-muted">No matching palettes.</p>
+        )}
+        {!choosingPalette && settled && !hasList && (
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -263,10 +373,12 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
         )}
         {hasList && (
           <ul
+            key={choosingPalette ? "color-palettes" : "notes"}
             ref={listRef}
             id={listId}
             role="listbox"
             aria-label="Results"
+            onPointerLeave={choosingPalette ? clearPalettePreview : undefined}
             className="relative isolate"
           >
             <AnimatePresence initial={false} mode="popLayout">
@@ -283,7 +395,10 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
                     data-index={i}
                     role="option"
                     aria-selected={isActive}
-                    onPointerMove={() => !isActive && setActive(i)}
+                    onPointerMove={(event) => {
+                      if (event.pointerType === "touch") return;
+                      activate(i);
+                    }}
                     onClick={() => openItem(item)}
                     className="relative cursor-pointer rounded-xl"
                   >
@@ -311,7 +426,7 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
       <div
         className={cn(
           "items-center gap-4 border-t border-line px-4 py-1 text-xs text-subtle sm:py-2.5",
-          dq ? "flex" : "hidden sm:flex",
+          choosingPalette || dq ? "flex" : "hidden sm:flex",
         )}
       >
         <span className="hidden items-center gap-1.5 sm:flex">
@@ -321,14 +436,25 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
         <span className="hidden items-center gap-1.5 sm:flex">
           <Kbd>↵</Kbd> open
         </span>
-        {dq && (
+        {choosingPalette ? (
           <button
             type="button"
-            onClick={() => go(() => void navigate({ to: "/search", search: { q: dq } }))}
-            className="-mr-2 ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-md px-2 transition-colors hover:text-fg sm:-my-1 sm:min-h-7"
+            onClick={() => showPalettes(false)}
+            aria-keyshortcuts="ArrowRight"
+            className="ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-md px-2 hover:text-fg sm:-my-1 sm:min-h-7"
           >
-            All results <Kbd className="hidden sm:inline-flex">⌘↵</Kbd>
+            Back to search <Kbd>←</Kbd>
           </button>
+        ) : (
+          dq && (
+            <button
+              type="button"
+              onClick={() => go(() => void navigate({ to: "/search", search: { q: dq } }))}
+              className="-mr-2 ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-md px-2 transition-colors hover:text-fg sm:-my-1 sm:min-h-7"
+            >
+              All results <Kbd className="hidden sm:inline-flex">⌘↵</Kbd>
+            </button>
+          )
         )}
       </div>
     </motion.div>

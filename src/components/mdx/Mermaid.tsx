@@ -40,7 +40,7 @@ export function Mermaid({
   ...rest
 }: Props) {
   const [ref, inView] = useInView<HTMLElement>("400px");
-  const { theme } = useTheme();
+  const { theme, palette } = useTheme();
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -71,7 +71,7 @@ export function Mermaid({
     return () => {
       cancelled = true;
     };
-  }, [inView, theme, source]);
+  }, [inView, theme, palette, source]);
 
   const minHeight = estimateHeight(source);
 
