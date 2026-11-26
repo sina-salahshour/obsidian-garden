@@ -164,6 +164,7 @@
    --------------------------------------------------------------------------------------- */
 @layer base {
   html {
+    @apply themed-scrollbar;
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
     scroll-padding-top: calc(var(--header-h) + 1.5rem);
@@ -381,9 +382,62 @@
   }
 }
 
+/* Keep the shadow on the page plane while the card tilts toward the pointer. */
+@utility post-card-perspective {
+  --post-card-x: 0;
+  --post-card-y: 0;
+  box-shadow: var(--shadow-sm);
+
+  @media (any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference) {
+    perspective: 1100px;
+    --post-card-pressure: max(
+      var(--post-card-x),
+      calc(-1 * var(--post-card-x)),
+      var(--post-card-y),
+      calc(-1 * var(--post-card-y))
+    );
+    box-shadow:
+      var(--shadow-sm),
+      calc(-6px * var(--post-card-x)) calc(-6px * var(--post-card-y)) 16px -8px
+        color-mix(in oklab, var(--scrim) calc(40% * var(--post-card-pressure)), transparent);
+
+    & > article {
+      transform: rotateX(calc(-1.8deg * var(--post-card-y)))
+        rotateY(calc(1.1deg * var(--post-card-x)));
+    }
+  }
+}
+
 @utility scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
+}
+
+@utility themed-scrollbar {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) var(--surface);
+
+  @supports selector(::-webkit-scrollbar) {
+    @media (forced-colors: none) {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+      &::-webkit-scrollbar-track {
+        background: var(--surface);
+      }
+      &::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: var(--accent);
+      }
+      &::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-strong);
+      }
+    }
+  }
 }
 
 @utility no-scrollbar {

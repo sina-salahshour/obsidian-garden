@@ -4,8 +4,8 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { SearchHit } from "~/content/types";
 import { cn } from "~/lib/cn";
 import { findRanges } from "~/lib/highlight";
-import { useDebounced } from "~/lib/hooks";
-import { pop, spring } from "~/lib/motion";
+import { useDebounced, useMediaQuery } from "~/lib/hooks";
+import { fade, pop, spring } from "~/lib/motion";
 import { palette, usePaletteOpen } from "~/lib/palette";
 import { clearPalettePreview, previewColorPalette, setColorPalette, useTheme } from "~/lib/theme";
 import { site } from "~/site.config";
@@ -73,7 +73,7 @@ export function CommandPalette({ search }: { search: SearchFn }) {
       open={open}
       onClose={close}
       label="Search notes"
-      className="flex items-start justify-center px-3 pt-[min(14vh,7rem)] sm:px-6"
+      className="flex items-start justify-center px-3 pt-[min(14vh,7rem)] perspective-origin-top motion-safe:perspective-[1000px] sm:px-6"
     >
       <Panel search={search} onClose={close} />
     </Overlay>
@@ -82,6 +82,7 @@ export function CommandPalette({ search }: { search: SearchFn }) {
 
 function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
   const navigate = useNavigate();
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const { savedPalette: currentPalette, theme } = useTheme();
   const [choosingPalette, setChoosingPalette] = useState(false);
   const [q, setQ] = useState("");
@@ -279,7 +280,7 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
 
   return (
     <motion.div
-      variants={pop}
+      variants={reducedMotion ? fade : pop}
       initial="hidden"
       animate="show"
       exit="exit"
@@ -296,7 +297,7 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
           showPalettes(false);
         }
       }}
-      className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh-8rem))] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-lg)]"
+      className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh-8rem))] w-full max-w-xl origin-[40%_50%] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-lg)]"
     >
       {/* the row's accent underline (has-[input:focus]) is the input's focus indicator */}
       <div className="flex items-center gap-3 border-b border-line px-4 transition-shadow has-[input:focus]:shadow-[inset_0_-2px_0_var(--ring)]">
@@ -348,7 +349,7 @@ function Panel({ search, onClose }: { search: SearchFn; onClose: () => void }) {
         </button>
       </div>
 
-      <div className="scrollbar-thin flex-1 overflow-y-auto overscroll-contain p-2">
+      <div className="themed-scrollbar flex-1 overflow-y-auto overscroll-contain p-2">
         {(choosingPalette || !dq) && (
           <p className="px-3 pt-2 pb-1.5 text-xs font-medium text-subtle">
             {choosingPalette ? "Color palettes" : "Jump to"}

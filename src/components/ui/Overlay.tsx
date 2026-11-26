@@ -24,7 +24,6 @@ export function Overlay({
   className?: string;
   scrimClassName?: string;
 }) {
-  useScrollLock(open);
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
   // callers pass a fresh `onClose` each render; read it through a ref so the effect below runs only
@@ -76,7 +75,7 @@ export function Overlay({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[60]" role="presentation">
+        <OverlayFrame>
           <motion.div
             variants={fade}
             initial="hidden"
@@ -91,14 +90,28 @@ export function Overlay({
             aria-modal="true"
             aria-label={label}
             tabIndex={-1}
-            className={cn("pointer-events-none absolute inset-0 outline-none", className)}
+            className={cn(
+              "pointer-events-none absolute inset-y-0 start-0 end-[var(--page-scrollbar-gutter,0px)] outline-none",
+              className,
+            )}
           >
             {children}
           </div>
-        </div>
+        </OverlayFrame>
       )}
     </AnimatePresence>,
     document.body,
+  );
+}
+
+function OverlayFrame({ children }: { children: React.ReactNode }) {
+  const frame = useRef<HTMLDivElement>(null);
+  // AnimatePresence retains this frame until the panel and scrim finish exiting.
+  useScrollLock(true, frame);
+  return (
+    <div ref={frame} className="fixed inset-0 z-[60]" role="presentation">
+      {children}
+    </div>
   );
 }
 

@@ -55,14 +55,14 @@ export const fade: Variants = {
   exit: { opacity: 0, transition: { duration: duration.fast } },
 };
 
-/** Floating panels (command palette, popovers): a hint of scale from the top. */
+const paletteHidden = { opacity: 0, scale: 0.94, y: -8, rotateY: 3.5 };
+
+/** The command palette scales in and out with a slight turn. */
 export const pop: Variants = {
-  hidden: { opacity: 0, scale: 0.97, y: -8 },
-  show: { opacity: 1, scale: 1, y: 0, transition: spring.panel },
+  hidden: paletteHidden,
+  show: { opacity: 1, scale: 1, y: 0, rotateY: 0, transition: spring.panel },
   exit: {
-    opacity: 0,
-    scale: 0.98,
-    y: -4,
+    ...paletteHidden,
     transition: { duration: duration.fast, ease: ease.inOut },
   },
 };

@@ -1,5 +1,5 @@
 import { useMotionValue, useReducedMotion, useSpring } from "motion/react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { hoverTrigger, spring } from "./motion";
 
 export function useMediaQuery(query: string, serverValue = false): boolean {
@@ -14,20 +14,43 @@ export function useMediaQuery(query: string, serverValue = false): boolean {
   );
 }
 
-/** Lock page scroll while `active` (overlays), compensating for the scrollbar width. */
-export function useScrollLock(active: boolean) {
-  useEffect(() => {
+let pageScrollLock: { users: number; gutter: number; restore: () => void } | undefined;
+
+function lockPageScroll() {
+  const { body } = document;
+  const width = body.getBoundingClientRect().width;
+  const { overflow, paddingInlineEnd } = body.style;
+  const padding = getComputedStyle(body).paddingInlineEnd;
+  body.style.overflow = "hidden";
+  // The body retains a stable root gutter even if clientWidth reports the wider viewport.
+  const gutter = Math.max(0, body.getBoundingClientRect().width - width);
+  if (gutter) body.style.paddingInlineEnd = `calc(${padding} + ${gutter}px)`;
+  return {
+    users: 0,
+    gutter,
+    restore() {
+      body.style.overflow = overflow;
+      body.style.paddingInlineEnd = paddingInlineEnd;
+    },
+  };
+}
+
+/** Lock page scroll and expose the measured gutter to fixed overlays. */
+export function useScrollLock(active: boolean, frame?: React.RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
     if (!active) return;
-    const { body, documentElement } = document;
-    const gap = window.innerWidth - documentElement.clientWidth;
-    const prev = { overflow: body.style.overflow, paddingRight: body.style.paddingRight };
-    body.style.overflow = "hidden";
-    if (gap > 0) body.style.paddingRight = `${gap}px`;
+    const lock = (pageScrollLock ??= lockPageScroll());
+    const element = frame?.current;
+    lock.users++;
+    element?.style.setProperty("--page-scrollbar-gutter", `${lock.gutter}px`);
     return () => {
-      body.style.overflow = prev.overflow;
-      body.style.paddingRight = prev.paddingRight;
+      element?.style.removeProperty("--page-scrollbar-gutter");
+      if (--lock.users === 0) {
+        lock.restore();
+        pageScrollLock = undefined;
+      }
     };
-  }, [active]);
+  }, [active, frame]);
 }
 
 /**
