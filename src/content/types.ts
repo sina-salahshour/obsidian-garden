@@ -170,6 +170,8 @@ export type GithubButton = "hidden" | "icon" | "stars";
 export interface SiteData {
   title: string;
   description: string;
+  heroTitle: string[] | null;
+  heroDescription: string | null;
   /** BCP-47, e.g. "en" */
   locale: string;
   /** canonical origin without a trailing slash, e.g. "https://example.com"; null when unset */

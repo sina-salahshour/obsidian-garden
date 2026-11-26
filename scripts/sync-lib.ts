@@ -15,6 +15,7 @@ import {
   resolveAttachment,
 } from "../src/content/attachments.ts";
 import { slugifySegment } from "../src/content/slug.ts";
+import { normalizeHeroTitles } from "../src/content/hero-titles.ts";
 import type { GithubButton, SiteAuthor, SiteData } from "../src/content/types.ts";
 
 export { PRIVATE_DIR };
@@ -654,6 +655,13 @@ export function buildSiteData(
       const has = (k: string) => fm[k] != null && fm[k] !== "";
       assign("title", "title", str(fm.title));
       assign("description", "description", str(fm.description));
+      const heroDescription = fm["hero-description"];
+      assign("heroTitle", "hero-title", normalizeHeroTitles(fm["hero-title"]));
+      assign(
+        "heroDescription",
+        "hero-description",
+        typeof heroDescription === "string" ? str(heroDescription) : null,
+      );
       if (has("url")) {
         const url = httpUrl(fm.url, `${note.path}: url`, warnings);
         assign("url", "url", url ? url.replace(/\/+$/, "") : null);
@@ -749,6 +757,8 @@ export function buildSiteData(
   const data: SiteData = {
     title: set.title ?? fallbackTitle ?? SITE_DEFAULTS.title,
     description: set.description ?? fallbackDescription ?? SITE_DEFAULTS.description,
+    heroTitle: set.heroTitle ?? null,
+    heroDescription: set.heroDescription ?? null,
     locale: set.locale ?? SITE_DEFAULTS.locale,
     url: set.url ?? null,
     image: set.image ?? null,

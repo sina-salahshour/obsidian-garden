@@ -46,6 +46,8 @@ describe("site notes", () => {
     expect(data).toEqual({
       title: "Data Garden",
       description: "Notes, deep dives and explainers, published straight from my Obsidian vault.",
+      heroTitle: null,
+      heroDescription: null,
       locale: "en",
       url: null,
       image: null,
@@ -113,6 +115,42 @@ describe("site notes", () => {
       files(),
     );
     expect(data).toMatchObject({ title: "Heading A", description: "From B" });
+  });
+
+  it("syncs homepage copy from settings and ignores invalid overrides", () => {
+    const { data, warnings } = buildSiteData(
+      [
+        note("a.md", {
+          site: "settings",
+          "hero-title": "  Frontend notes  ",
+          "hero-description": "Notes about React.",
+        }),
+        note("b.md", {
+          site: "settings",
+          "hero-title": 42,
+          "hero-description": "React, Next.js, and Svelte.",
+        }),
+        note("c.md", { site: "settings", "hero-description": "   " }),
+      ],
+      files(),
+    );
+    expect(JSON.parse(serializeSiteData(data))).toMatchObject({
+      heroTitle: ["Frontend notes"],
+      heroDescription: "React, Next.js, and Svelte.",
+    });
+    expect(warnings).toEqual(["site hero-description: b.md overrides the value set in a.md"]);
+  });
+
+  it("reads a YAML headline list in order and treats an empty list as unset", () => {
+    const { data: frontmatter } = splitFrontmatter(
+      "---\nsite: settings\nhero-title:\n  - Web development notes\n  - Frontend notes\n  - 42\n  - Frontend notes\n---\n",
+    );
+    const { data, warnings } = buildSiteData(
+      [note("a.md", frontmatter), note("b.md", { site: "settings", "hero-title": [] })],
+      files(),
+    );
+    expect(data.heroTitle).toEqual(["Web development notes", "Frontend notes"]);
+    expect(warnings).toEqual([]);
   });
 
   it("warns on svg site images, bad urls, bad locales, unknown roles; ignores drafts", () => {
@@ -202,6 +240,8 @@ describe("site notes", () => {
     expect(Object.keys(JSON.parse(text))).toEqual([
       "title",
       "description",
+      "heroTitle",
+      "heroDescription",
       "locale",
       "url",
       "image",

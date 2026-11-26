@@ -42,6 +42,41 @@ describe("site.config", () => {
     });
   });
 
+  it("resolves each homepage field independently of the site metadata", () => {
+    const settings = { title: "My garden", description: "My site description" };
+    expect(createSite(parseSiteData(settings))).toMatchObject({
+      ...settings,
+      heroTitle: [settings.title],
+      heroDescription: settings.description,
+    });
+    expect(
+      createSite(
+        parseSiteData({ ...settings, heroTitle: "  Frontend notes  ", heroDescription: 42 }),
+      ),
+    ).toMatchObject({
+      ...settings,
+      heroTitle: ["Frontend notes"],
+      heroDescription: settings.description,
+    });
+    expect(
+      createSite(
+        parseSiteData({ ...settings, heroTitle: "   ", heroDescription: "Homepage copy" }),
+      ),
+    ).toMatchObject({
+      ...settings,
+      heroTitle: [settings.title],
+      heroDescription: "Homepage copy",
+    });
+    expect(
+      createSite(
+        parseSiteData({
+          ...settings,
+          heroTitle: [" Web development notes ", "Deep dives", "Deep dives", "", 42],
+        }),
+      ).heroTitle,
+    ).toEqual(["Web development notes", "Deep dives"]);
+  });
+
   it("falls back to an author named after the site", () => {
     const s = createSite(parseSiteData({ title: "My Garden" }));
     expect(s.author).toBe("My Garden");

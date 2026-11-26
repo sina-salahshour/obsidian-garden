@@ -1,14 +1,16 @@
 import { Await, Link, createFileRoute } from "@tanstack/react-router";
+import { animate, type AnimationPlaybackControls } from "motion/react";
+import { useEffect, useState } from "react";
 import { PostList } from "~/components/post/PostList";
 import { SeriesCard } from "~/components/series/SeriesCard";
-import { Kbd } from "~/components/ui/Badge";
-import { ArrowRight, SearchIcon } from "~/components/ui/icons";
+import { ArrowRight } from "~/components/ui/icons";
 import { Reveal, RevealItem } from "~/components/ui/Reveal";
 import { PostListSkeleton, TagCloudSkeleton } from "~/components/ui/Skeleton";
 import { buttonStyles, EmptyState } from "~/components/ui/States";
 import { TagChip } from "~/components/ui/TagChip";
 import { getFolders, getPosts, getSeries, getTags } from "~/content/functions";
-import { palette } from "~/lib/palette";
+import { useMediaQuery } from "~/lib/hooks";
+import { duration, enter } from "~/lib/motion";
 import { seo, siteUrlFrom } from "~/lib/seo";
 import { site } from "~/site.config";
 
@@ -104,42 +106,109 @@ function Home() {
   );
 }
 
+const headingHoldMs = 4000;
+const cipherGlyphs = "abcdefghkmnorstuvxyz23456789";
+
 function Hero() {
+  const titles = site.heroTitle;
+  const firstTitle = titles[0] ?? site.title;
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)", true);
+  const [paused, setPaused] = useState(false);
+  const [titleIndex, setTitleIndex] = useState(0);
+  const [cipher, setCipher] = useState<string | null>(null);
+  const visibleTitle = reducedMotion ? firstTitle : (cipher ?? titles[titleIndex] ?? firstTitle);
+
+  useEffect(() => {
+    if (titles.length < 2 || paused || reducedMotion) return;
+    const nextIndex = (titleIndex + 1) % titles.length;
+    const nextTitle = titles[nextIndex]!;
+    let animation: AnimationPlaybackControls | undefined;
+    const timer = window.setTimeout(() => {
+      const letters = Array.from(nextTitle);
+      let lastFrame = -1;
+      animation = animate(0, 1, {
+        duration: duration.slow,
+        ease: "linear",
+        onUpdate: (progress) => {
+          const frame = Math.floor(progress * 16);
+          if (frame === lastFrame) return;
+          lastFrame = frame;
+          const revealed = Math.floor((frame / 16) * letters.length);
+          setCipher(
+            letters
+              .map((letter, i) =>
+                i < revealed || !/[A-Za-z0-9]/.test(letter)
+                  ? letter
+                  : cipherGlyphs[(i * 13 + frame * 7) % cipherGlyphs.length],
+              )
+              .join(""),
+          );
+        },
+        onComplete: () => {
+          setTitleIndex(nextIndex);
+          setCipher(null);
+        },
+      });
+    }, headingHoldMs);
+    return () => {
+      window.clearTimeout(timer);
+      animation?.stop();
+    };
+  }, [paused, reducedMotion, titleIndex, titles]);
+
   return (
-    <section className="container-page pt-12 pb-14 sm:pt-20 sm:pb-20" aria-labelledby="hero-title">
-      <p className="enter" style={{ "--i": 0 } as React.CSSProperties}>
-        <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 py-1 pr-3 pl-1.5 text-xs font-medium text-muted">
-          <span className="relative flex size-5 items-center justify-center rounded-full bg-accent-soft">
-            <span className="size-1.5 rounded-full bg-accent" />
-            <span className="absolute inset-0 animate-ping rounded-full bg-accent/20 [animation-duration:2.4s]" />
-          </span>
-          A digital garden by {site.author}
-        </span>
-      </p>
-      <h1
-        id="hero-title"
-        className={`mt-6 max-w-[18ch] font-serif text-[2.75rem] leading-[1.04] font-medium tracking-[-0.025em] text-balance sm:text-6xl lg:text-7xl enter`}
-        style={{ "--i": 1 } as React.CSSProperties}
-      >
-        Notes that go <em className="font-normal text-accent italic">all the way</em> down.
-      </h1>
-      <p
-        className={`mt-6 max-w-[56ch] text-lg leading-relaxed text-pretty text-muted sm:text-xl enter`}
-        style={{ "--i": 2 } as React.CSSProperties}
-      >
-        {site.description} Diagrams, footnotes and the occasional rabbit hole.
-      </p>
+    <section className="container-page pt-10 pb-8 sm:pt-16 sm:pb-10" aria-labelledby="hero-title">
       <div
-        className={`mt-8 flex flex-wrap gap-3 enter`}
-        style={{ "--i": 3 } as React.CSSProperties}
+        {...enter(
+          0,
+          "grid max-w-[30ch] font-serif text-[clamp(1.75rem,7.5vw,3.25rem)] leading-[1.12] font-normal tracking-[-0.01em] text-balance [overflow-wrap:anywhere]",
+        )}
       >
+        <h1 id="hero-title" className="col-start-1 row-start-1">
+          {visibleTitle === firstTitle ? (
+            firstTitle
+          ) : (
+            <>
+              <span className="sr-only">{firstTitle}</span>
+              <span aria-hidden="true">{visibleTitle}</span>
+            </>
+          )}
+        </h1>
+        {/* Keep the introduction in place as the headings wrap to different lengths. */}
+        {titles.map((title) => (
+          <span key={title} aria-hidden="true" className="invisible col-start-1 row-start-1">
+            {title}
+          </span>
+        ))}
+      </div>
+      <p
+        {...enter(
+          1,
+          "mt-4 max-w-[58ch] text-lg leading-relaxed text-pretty text-muted [overflow-wrap:anywhere]",
+        )}
+      >
+        {site.heroDescription}
+      </p>
+      <div {...enter(2, "mt-6 flex items-center gap-2")}>
         <Link to="/posts" className={buttonStyles.primary}>
           Browse notes <ArrowRight size={15} />
         </Link>
-        <button type="button" onClick={() => palette.open()} className={buttonStyles.secondary}>
-          <SearchIcon size={15} /> Search
-          <Kbd className="ml-1 max-sm:hidden">/</Kbd>
-        </button>
+        {titles.length > 1 && !reducedMotion && (
+          <button
+            type="button"
+            aria-label={paused ? "Resume headline rotation" : "Pause headline rotation"}
+            title={paused ? "Resume headline rotation" : "Pause headline rotation"}
+            onClick={() => {
+              setCipher(null);
+              setPaused(!paused);
+            }}
+            className="inline-grid size-11 place-items-center rounded-full text-subtle transition-colors hover:bg-sunken hover:text-fg"
+          >
+            <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+              <path d={paused ? "M5 3.5v9L12 8Z" : "M5 3.5h2v9H5zM9 3.5h2v9H9z"} />
+            </svg>
+          </button>
+        )}
       </div>
     </section>
   );

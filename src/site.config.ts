@@ -4,6 +4,7 @@
 import { z } from "zod";
 import type { SiteAuthor, SiteData } from "./content/types.ts";
 import { slugifySegment } from "./content/slug.ts";
+import { normalizeHeroTitles } from "./content/hero-titles.ts";
 
 export type { SiteAuthor, SiteData };
 
@@ -13,6 +14,7 @@ const DEFAULT_DESCRIPTION =
 
 const strList = z.array(z.string()).catch([]).default([]);
 const nullableStr = z.string().nullable().catch(null).default(null);
+const heroText = z.string().trim().min(1).nullable().catch(null).default(null);
 
 const authorSchema = z.object({
   id: z.string().default(""),
@@ -29,6 +31,8 @@ const authorSchema = z.object({
 const siteSchema = z.object({
   title: z.string().min(1).catch(DEFAULT_TITLE).default(DEFAULT_TITLE),
   description: z.string().min(1).catch(DEFAULT_DESCRIPTION).default(DEFAULT_DESCRIPTION),
+  heroTitle: z.unknown().optional().transform(normalizeHeroTitles),
+  heroDescription: heroText,
   locale: z.string().min(1).catch("en").default("en"),
   url: nullableStr,
   image: nullableStr,
@@ -81,6 +85,8 @@ export function minimalAuthor(name: string): SiteAuthor {
 }
 
 export type Site = SiteData & {
+  heroTitle: string[];
+  heroDescription: string;
   /** default author's name, else the site title (kept for existing consumers) */
   author: string;
   /** authors[0], else a minimal author named after the site title */
@@ -89,7 +95,13 @@ export type Site = SiteData & {
 
 export function createSite(data: SiteData): Site {
   const defaultAuthor = data.authors[0] ?? minimalAuthor(data.title);
-  return { ...data, author: defaultAuthor.name, defaultAuthor };
+  return {
+    ...data,
+    heroTitle: data.heroTitle ?? [data.title],
+    heroDescription: data.heroDescription ?? data.description,
+    author: defaultAuthor.name,
+    defaultAuthor,
+  };
 }
 
 /**

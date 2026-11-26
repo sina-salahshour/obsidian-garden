@@ -1,6 +1,12 @@
 {
   "title": "Data Garden",
   "description": "Notes, deep dives and explainers, published straight from my Obsidian vault.",
+  "heroTitle": [
+    "Web development notes",
+    "Frontend notes",
+    "Source-code deep dives"
+  ],
+  "heroDescription": "I write these courses for myself, mostly about frontend development. They collect explanations, tricks, and recipes I use, alongside deep dives into the React and Next.js source code.",
   "locale": "en",
   "url": "https://garden.drhexe.ir",
   "image": "/attachments/_site/social-card.png",
