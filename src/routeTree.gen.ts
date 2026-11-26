@@ -16,6 +16,7 @@ import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RssDotxmlRouteImport } from './routes/rss[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TagsRouteImport } from './routes/tags'
 import { Route as PostsIndexRouteImport } from './routes/posts.index'
@@ -57,6 +58,11 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tags': typeof TagsRoute
   '/posts/$': typeof PostsSplatRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tags': typeof TagsRoute
   '/posts/$': typeof PostsSplatRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/rss.xml': typeof RssDotxmlRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tags': typeof TagsRoute
   '/posts/$': typeof PostsSplatRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/rss.xml'
     | '/search'
+    | '/settings'
     | '/sitemap.xml'
     | '/tags'
     | '/posts/$'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/rss.xml'
     | '/search'
+    | '/settings'
     | '/sitemap.xml'
     | '/tags'
     | '/posts/$'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/rss.xml'
     | '/search'
+    | '/settings'
     | '/sitemap.xml'
     | '/tags'
     | '/posts/$'
@@ -179,6 +191,7 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   RssDotxmlRoute: typeof RssDotxmlRoute
   SearchRoute: typeof SearchRoute
+  SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TagsRoute: typeof TagsRoute
   PostsSplatRoute: typeof PostsSplatRoute
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -283,6 +303,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   RssDotxmlRoute: RssDotxmlRoute,
   SearchRoute: SearchRoute,
+  SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TagsRoute: TagsRoute,
   PostsSplatRoute: PostsSplatRoute,

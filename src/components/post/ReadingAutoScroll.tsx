@@ -2,12 +2,13 @@ import { motion } from "motion/react";
 import { useEffect, useState, type RefObject } from "react";
 import { cn } from "~/lib/cn";
 import { spring } from "~/lib/motion";
+import { useReadingPreference } from "~/lib/reading-preferences";
 
-const readingSpeed = 12; // CSS pixels per second
 const bottomGutter = 80; // Leave the last line clear of the mobile controls.
 const scrollKeys = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "]);
 
 export function useReadingAutoScroll(body: RefObject<HTMLElement | null>) {
+  const readingSpeed = useReadingPreference("speed");
   const [status, setStatus] = useState<"idle" | "playing" | "paused">("idle");
   const playing = status === "playing";
   const pause = () => setStatus((current) => (current === "playing" ? "paused" : current));
@@ -79,7 +80,7 @@ export function useReadingAutoScroll(body: RefObject<HTMLElement | null>) {
       cancelAnimationFrame(frame);
       controller.abort();
     };
-  }, [body, playing]);
+  }, [body, playing, readingSpeed]);
 
   return { playing, started: status !== "idle", pause, toggle };
 }

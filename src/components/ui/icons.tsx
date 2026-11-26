@@ -103,6 +103,21 @@ export const SearchIcon = (p: IconProps) => (
     </motion.g>
   </Icon>
 );
+/** A short turn around the gear's center. */
+export const SettingsIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <motion.g
+      variants={{
+        rest: { rotate: 0, transition: spring.snappy },
+        hover: { rotate: 24, transition: spring.snappy },
+      }}
+      style={{ transformBox: "view-box", transformOrigin: "center" }}
+    >
+      <path d="m9.15 4.95.87-2.24h3.96l.87 2.24 1.83 1.06 2.38-.37 1.98 3.42-1.51 1.88v2.12l1.51 1.88-1.98 3.42-2.38-.37-1.83 1.06-.87 2.24h-3.96l-.87-2.24-1.83-1.06-2.38.37-1.98-3.42 1.51-1.88v-2.12L2.96 9.06l1.98-3.42 2.38.37Z" />
+      <circle cx="12" cy="12" r="3" />
+    </motion.g>
+  </Icon>
+);
 /** Arrows slide out in their direction and a twin slides in behind (clipped by the viewBox). */
 export const ArrowRight = (p: IconProps) => (
   <Icon {...p}>

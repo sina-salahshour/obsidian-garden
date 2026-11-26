@@ -44,9 +44,11 @@ function resolveTheme(pref: ThemePreference, palette: ColorPalette | undefined):
 
 function applyAppearance(palette: ColorPalette | undefined) {
   const root = document.documentElement;
-  const theme = resolveTheme(readPreference(), palette);
+  const themePreference = readPreference();
+  const theme = resolveTheme(themePreference, palette);
   root.classList.add("theme-switching");
   root.dataset.theme = theme;
+  root.dataset.themePreference = themePreference;
   root.dataset.palette = palette?.id ?? "garden";
   root.dataset.themeLocked = String(Boolean(palette && (!palette.light || !palette.dark)));
   root.style.colorScheme = theme;
@@ -95,23 +97,45 @@ export function clearPalettePreview() {
   if (displayedPalette()?.id !== palette?.id) applyAppearance(palette);
 }
 
-function toggleTheme() {
+export function setThemePreference(next: ThemePreference) {
   const palette = selectedPalette();
-  if (palette && (!palette.light || !palette.dark)) return;
-  preference = resolveTheme(readPreference(), palette) === "dark" ? "light" : "dark";
+  preference = next;
   try {
-    localStorage.setItem(THEME_STORAGE_KEY, preference);
+    if (next === "system") localStorage.removeItem(THEME_STORAGE_KEY);
+    else localStorage.setItem(THEME_STORAGE_KEY, next);
   } catch {
     // The in-memory preference still applies.
   }
-  changeAppearance(palette);
+  if (resolveTheme(next, palette) === document.documentElement.dataset.theme)
+    applyAppearance(palette);
+  else changeAppearance(palette);
+}
+
+function toggleTheme() {
+  const palette = selectedPalette();
+  if (palette && (!palette.light || !palette.dark)) return;
+  setThemePreference(resolveTheme(readPreference(), palette) === "dark" ? "light" : "dark");
+}
+
+export function resetAppearance() {
+  const palette = site.colorPalettes[0];
+  preference = "system";
+  selectedPaletteId = palette?.id;
+  previewing = false;
+  try {
+    localStorage.removeItem(THEME_STORAGE_KEY);
+    localStorage.removeItem(PALETTE_STORAGE_KEY);
+  } catch {
+    // The in-memory defaults still apply.
+  }
+  applyAppearance(palette);
 }
 
 function subscribe(onChange: () => void) {
   const observer = new MutationObserver(onChange);
   observer.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-theme", "data-palette"],
+    attributeFilter: ["data-theme", "data-theme-preference", "data-palette"],
   });
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
   const onSystem = () => {
@@ -125,21 +149,24 @@ function subscribe(onChange: () => void) {
 }
 
 function getSnapshot() {
-  const { palette, theme } = document.documentElement.dataset;
-  return `${palette ?? ""}:${theme ?? ""}`;
+  const { palette, theme, themePreference } = document.documentElement.dataset;
+  return `${palette ?? ""}:${theme ?? ""}:${themePreference ?? "system"}`;
 }
 
 /** React to either axis, including a palette switch within the same light/dark mode. */
 export function useTheme() {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, () => null);
-  const [paletteId, rawTheme] = snapshot?.split(":") ?? [];
+  const [paletteId, rawTheme, rawPreference] = snapshot?.split(":") ?? [];
   const palette =
     site.colorPalettes.find((entry) => entry.id === paletteId) ?? site.colorPalettes[0];
   const savedPalette =
     site.colorPalettes.find((entry) => entry.id === selectedPaletteId) ?? palette;
   const theme: Theme | null = rawTheme === "dark" || rawTheme === "light" ? rawTheme : null;
+  const preference: ThemePreference =
+    rawPreference === "light" || rawPreference === "dark" ? rawPreference : "system";
   return {
     theme,
+    preference,
     palette,
     savedPalette,
     canToggle: !palette || Boolean(palette.light && palette.dark),

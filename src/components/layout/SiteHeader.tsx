@@ -13,7 +13,7 @@ import { fade, hoverTrigger, spring } from "~/lib/motion";
 import { palette, usePaletteOpen } from "~/lib/palette";
 import { LessonsGrid, LessonsGridSkeleton } from "../series/LessonsGrid";
 import { prefetchLessons, useLessons } from "../series/useLessons";
-import { ArrowRight, ChevronDown, GraphIcon, Reset, SearchIcon } from "../ui/icons";
+import { ArrowRight, ChevronDown, GraphIcon, Reset, SearchIcon, SettingsIcon } from "../ui/icons";
 import { Kbd } from "../ui/Badge";
 import { GithubButton } from "./GithubButton";
 import { ThemeToggle } from "./ThemeToggle";
@@ -102,7 +102,7 @@ export function SiteHeader() {
             : "border-transparent bg-bg/0",
         )}
       >
-        <div className="container-page flex h-[var(--header-h)] items-center gap-2">
+        <div className="container-page flex h-[var(--header-h)] items-center gap-1 sm:gap-2">
           {/* Explicit tabIndex={0} on header links: Safari (and some Chromium setups) leave plain
               links out of the Tab order, which would skip the nav and the Lessons panel. */}
           <a
@@ -115,7 +115,7 @@ export function SiteHeader() {
           <Link
             tabIndex={0}
             to="/"
-            className="group -ml-1 flex min-w-0 items-center gap-2.5 rounded-lg p-1"
+            className="group -ml-1 flex min-w-0 items-center gap-1.5 rounded-lg p-1 sm:gap-2.5"
             aria-label={`${site.title}, home`}
           >
             {/* tabIndex -1: whileTap would otherwise make Motion add a tab stop inside the link */}
@@ -132,6 +132,16 @@ export function SiteHeader() {
             <span className="text-trim-cap overflow-x-clip font-serif text-[1.1875rem] font-medium tracking-tight text-ellipsis whitespace-nowrap">
               {site.title}
             </span>
+          </Link>
+          <Link
+            tabIndex={0}
+            to="/settings"
+            aria-label="Settings"
+            title="Settings"
+            activeProps={{ "aria-current": "page" }}
+            className="-ml-1 inline-flex size-10 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-sunken hover:text-fg aria-[current=page]:bg-sunken aria-[current=page]:text-fg"
+          >
+            <SettingsIcon size={18} />
           </Link>
 
           <nav aria-label="Main" className="ml-auto hidden md:block">
@@ -162,7 +172,7 @@ export function SiteHeader() {
             </ul>
           </nav>
 
-          <div className="ml-auto flex items-center gap-1 md:ml-2">
+          <div className="ml-auto flex items-center gap-0.5 sm:gap-1 md:ml-2">
             <button
               type="button"
               onClick={() => palette.open()}

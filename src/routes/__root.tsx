@@ -9,6 +9,7 @@ import { SiteHeader } from "~/components/layout/SiteHeader";
 import { CommandPalette, type SearchFn } from "~/components/search/CommandPalette";
 import { ErrorView, NotFound } from "~/components/ui/States";
 import { getSiteUrl, searchPosts } from "~/content/functions";
+import { createFontSizeScript } from "~/lib/reading-preferences";
 import { repeatedMetaExtras, seo } from "~/lib/seo";
 import { THEME_COLORS, createThemeScript, paletteStyles } from "~/lib/theme-script";
 import { site } from "~/site.config";
@@ -22,7 +23,7 @@ import newsreaderLatin from "@fontsource-variable/newsreader/files/newsreader-la
 const gtmId = import.meta.env.VITE_GTM_ID?.trim();
 const defaultPalette = site.colorPalettes[0];
 const defaultMode = defaultPalette && !defaultPalette.light ? "dark" : "light";
-const themeScript = createThemeScript(site.colorPalettes);
+const appearanceScript = `${createThemeScript(site.colorPalettes)};${createFontSizeScript()}`;
 const colorStyles = paletteStyles(site.colorPalettes);
 
 export const Route = createRootRoute({
@@ -115,8 +116,8 @@ function RootDocument({ children }: { children: ReactNode }) {
           content={defaultPalette?.[defaultMode]?.bg ?? THEME_COLORS[defaultMode]}
           suppressHydrationWarning
         />
-        {/* must run before first paint: no theme flash */}
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Restore appearance before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
         {colorStyles && <style dangerouslySetInnerHTML={{ __html: colorStyles }} />}
         {gtmId && (
           <>

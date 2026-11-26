@@ -97,7 +97,12 @@ describe("themeScript", () => {
       stored: "dark",
       systemDark: false,
     });
-    expect(root.dataset).toEqual({ palette: "reader", theme: "dark", themeLocked: "false" });
+    expect(root.dataset).toEqual({
+      palette: "reader",
+      theme: "dark",
+      themePreference: "dark",
+      themeLocked: "false",
+    });
     expect(root.chrome).toBe("#101010");
     expect(paletteStyles(palettes)).toContain(
       ':root[data-palette="reader"][data-theme="dark"]{--bg:#101010',
@@ -123,9 +128,24 @@ describe("themeScript", () => {
       stored: "dark",
       systemDark: false,
     });
-    expect(dark.dataset).toEqual({ palette: "dark-only", theme: "dark", themeLocked: "true" });
-    expect(light.dataset).toEqual({ palette: "light-only", theme: "light", themeLocked: "true" });
-    expect(missing.dataset).toEqual({ palette: "reader", theme: "dark", themeLocked: "false" });
+    expect(dark.dataset).toEqual({
+      palette: "dark-only",
+      theme: "dark",
+      themePreference: "light",
+      themeLocked: "true",
+    });
+    expect(light.dataset).toEqual({
+      palette: "light-only",
+      theme: "light",
+      themePreference: "dark",
+      themeLocked: "true",
+    });
+    expect(missing.dataset).toEqual({
+      palette: "reader",
+      theme: "dark",
+      themePreference: "dark",
+      themeLocked: "false",
+    });
   });
 
   test("rejects malformed colors and identifiers before generating CSS", () => {

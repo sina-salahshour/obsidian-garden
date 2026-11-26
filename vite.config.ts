@@ -4,6 +4,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite-plus";
+import { version } from "./package.json";
 import { mdxOptions } from "./src/content/mdx/options.ts";
 
 const generated = [
@@ -16,6 +17,14 @@ const generated = [
 
 export default defineConfig({
   server: { port: 3000 },
+  define: {
+    __SITE_BUILD__: JSON.stringify({
+      version,
+      builtAt: new Date().toISOString(),
+      environment: process.env.VERCEL_ENV ?? null,
+      commit: process.env.VERCEL_GIT_COMMIT_SHA?.trim() || null,
+    }),
+  },
   resolve: { tsconfigPaths: true },
   plugins: [
     tailwindcss(),

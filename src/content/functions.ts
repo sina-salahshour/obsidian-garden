@@ -4,6 +4,7 @@ import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getViewer } from "./access.server.ts";
+import { getGithubAuthor } from "./github-author.server.ts";
 import { indexFor, privateBodyFor } from "./posts.server.ts";
 import { resolveSiteUrl } from "./site-url.server.ts";
 import type {
@@ -87,3 +88,6 @@ export const getPrivateBody = createServerFn({ method: "GET" })
 
 /** Absolute site origin for canonical URLs / og tags (SITE_URL, Vercel production URL, or request origin). */
 export const getSiteUrl = createServerFn({ method: "GET" }).handler((): string => resolveSiteUrl());
+
+/** A single public profile, fetched and cached on the server. */
+export const getAuthorProfile = createServerFn({ method: "GET" }).handler(() => getGithubAuthor());
