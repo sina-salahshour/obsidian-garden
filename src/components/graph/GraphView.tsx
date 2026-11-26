@@ -16,6 +16,7 @@ import { cn } from "~/lib/cn";
 import { mixHex, withAlpha } from "~/lib/color";
 import { formatReading } from "~/lib/format";
 import { spring } from "~/lib/motion";
+import { tagLabel } from "~/lib/tag-label";
 import { cssVar, useTheme } from "~/lib/theme";
 import { ArrowRight, Close, Minus, Plus, Reset, SearchIcon } from "../ui/icons";
 import { computeGroups, OTHER, START, taperedEdge, type GraphGroup } from "./graph-model";
@@ -813,7 +814,7 @@ export function GraphView({
                   {cardNode.degree} {cardNode.degree === 1 ? "link" : "links"}
                 </span>
                 {cardNode.tags.slice(0, 3).map((t) => (
-                  <span key={t}>#{t}</span>
+                  <span key={t}>#{tagLabel(t)}</span>
                 ))}
               </p>
               {pinned && (
@@ -939,7 +940,7 @@ function GraphSearch({
   }, [nodes]);
   const query = q.trim().toLowerCase().replace(/^#/, "");
   const tags: SearchItem[] = tagCounts
-    .filter(([t]) => t !== tag && (!query || t.includes(query)))
+    .filter(([t]) => t !== tag && (!query || t.includes(query) || tagLabel(t).includes(query)))
     .toSorted(([a], [b]) =>
       query ? Number(!a.startsWith(query)) - Number(!b.startsWith(query)) : 0,
     )
@@ -950,7 +951,8 @@ function GraphSearch({
         .filter(
           (n) =>
             (!tag || n.tags.includes(tag)) &&
-            (n.title.toLowerCase().includes(query) || n.tags.some((t) => t.includes(query))),
+            (n.title.toLowerCase().includes(query) ||
+              n.tags.some((t) => t.includes(query) || tagLabel(t).includes(query))),
         )
         .toSorted(
           (a, b) =>
@@ -1000,10 +1002,10 @@ function GraphSearch({
               exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.1 } }}
               transition={spring.snappy}
               onClick={() => onTag(null)}
-              aria-label={`Remove tag filter ${tag}`}
+              aria-label={`Remove tag filter ${tagLabel(tag)}`}
               className="-ml-1 inline-flex h-7 max-w-[45%] shrink-0 items-center gap-1 rounded-full bg-accent-soft pr-1.5 pl-2.5 text-xs font-medium text-accent-strong transition-colors hover:bg-[color-mix(in_oklab,var(--accent)_18%,transparent)]"
             >
-              <span className="truncate">#{tag}</span>
+              <span className="truncate">#{tagLabel(tag)}</span>
               <span aria-hidden="true" className="text-sm leading-none">
                 ×
               </span>
@@ -1090,7 +1092,7 @@ function GraphSearch({
                     <>
                       <span className="relative z-10 min-w-0 flex-1 truncate">
                         <span className="text-accent-strong">#</span>
-                        {item.tag}
+                        {tagLabel(item.tag)}
                       </span>
                       <span className="relative z-10 shrink-0 text-xs text-subtle tabular-nums">
                         {item.count}

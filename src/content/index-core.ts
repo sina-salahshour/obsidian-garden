@@ -1,6 +1,7 @@
 // Pure content index: lists, series, tags, folders, graph, related, backlinks and search over a set of
 // notes that the caller has ALREADY filtered for the viewer (see posts.server.ts). Anything not in the
 // set (e.g. private notes for anonymous viewers) is invisible: links to it are dropped everywhere.
+import { tagLabel } from "../lib/tag-label.ts";
 import type {
   FolderInfo,
   GraphData,
@@ -153,13 +154,14 @@ export function scorePost(
 ): number {
   const title = post.meta.title.toLowerCase();
   const headings = post.meta.headings.map((h) => h.text.toLowerCase());
+  const tags = post.meta.tags.flatMap((tag) => [tag, tagLabel(tag)]);
   let score = 0;
   for (const t of tokens) {
     let s = 0;
     const ti = title.indexOf(t);
     if (ti !== -1) s += 10 + (wordStart(title, ti) ? 5 : 0);
-    if (post.meta.tags.includes(t)) s += 8;
-    else if (post.meta.tags.some((tag) => tag.includes(t))) s += 4;
+    if (tags.includes(t)) s += 8;
+    else if (tags.some((tag) => tag.includes(t))) s += 4;
     if (headings.some((h) => h.includes(t))) s += 4;
     if (post.meta.description.toLowerCase().includes(t)) s += 2;
     s += occurrences(bodyLower, t, 5).length;

@@ -1,6 +1,6 @@
 ---
 title: Next.js in Practice
-description: A practical, source-backed course on Next.js 16, from the App Router, Server Components and Cache Components to rendering strategies, auth patterns and recipes for everyday problems.
+description: A practical, source-backed series on Next.js 16, from the App Router, Server Components and Cache Components to rendering strategies, auth patterns and recipes for everyday problems.
 cover: cover.svg
 social-image: social-card.png
 tags: [nextjs, nextjs-course, course]
@@ -9,11 +9,11 @@ created: 2026-10-27T09:51:45.107Z
 
 # Next.js in Practice
 
-Next.js 16 changed a lot of what you thought you knew. Middleware is now `proxy.ts`, `params` and `cookies()` are only async, Turbopack is the default bundler, and caching is opt-in through Cache Components, `'use cache'` and tags. This course explains how the framework actually works today, and then how to build real things with it: which rendering strategy to pick, how to wire TanStack Query or an auth layer into the server model, and how to fix the errors you will meet.
+Next.js 16 changed a lot of what you thought you knew. Middleware is now `proxy.ts`, `params` and `cookies()` are only async, Turbopack is the default bundler, and caching is opt-in through Cache Components, `'use cache'` and tags. This series explains how the framework actually works today, and then how to build real things with it: which rendering strategy to pick, how to wire TanStack Query or an auth layer into the server model, and how to fix the errors you will meet.
 
 It is written for working React developers who use Next.js, or are about to, and want reasons instead of rules of thumb. Every page is pinned to **Next.js v16.4.3** ([source on GitHub](https://github.com/vercel/next.js/tree/v16.4.3)), and every claim about how something works links to the exact lines at that tag, so you can check it and the line numbers stay true.
 
-The course has three tracks:
+The series has three tracks:
 
 - **Features** (parts 01 to 11): one built-in feature per part, how it works under the hood and how to use it well.
 - **Patterns** (parts 20 to 28): complete strategies built from the features, from static generation to partial prerendering, client-only SPAs, TanStack Query and two styles of authentication.
@@ -22,7 +22,7 @@ The course has three tracks:
 > [!tip] How to read this
 > If you are deciding how to build something, start with [[20 Rendering Strategies - A Decision Map|the rendering decision map]] and follow its links into the patterns. If you are new to the App Router, read parts 01 to 04 in order: each one builds on the last. If something is broken today, go straight to the recipe part for your problem and follow its links back into the features. The [[00 Next.js in Practice Index|index]] has a one-line summary of every part.
 
-This course pairs with the two React courses in the vault. Next.js is built on React Server Components, Suspense and transitions, and when a part needs those it links to [[react-explain|React Internals]] (React 19 line by line) or [[react-concepts|How React Works]] (the same ideas in plain language) instead of re-explaining them.
+This series pairs with the two React series in the vault. Next.js is built on React Server Components, Suspense and transitions, and when a part needs those it links to [[react-explain|React Internals]] (React 19 line by line) or [[react-concepts|How React Works]] (the same ideas in plain language) instead of re-explaining them.
 
 ## Parts
 

@@ -9,7 +9,7 @@ import { seo, siteUrlFrom } from "~/lib/seo";
 import { site } from "~/site.config";
 
 /**
- * ssr: true — a content page: the full course index renders on the server so it is crawlable,
+ * ssr: true — a content page: the full series index renders on the server so it is crawlable,
  * shareable and readable before JS.
  */
 export const Route = createFileRoute("/lessons")({
@@ -27,10 +27,10 @@ export const Route = createFileRoute("/lessons")({
   head: ({ matches, loaderData }) => {
     const siteUrl = siteUrlFrom(matches);
     const description =
-      "Every course in the garden: multi-part deep dives, meant to be read in order.";
+      "Explore all series in the garden, with multi-part deep dives to read in order.";
     return seo({
       siteUrl,
-      title: "Lessons",
+      title: "Series",
       description,
       path: "/lessons",
       schema: (origin) => {
@@ -44,12 +44,12 @@ export const Route = createFileRoute("/lessons")({
         );
         const crumbs = breadcrumbNode(origin, "/lessons", [
           { name: "Home", path: "/" },
-          { name: "Lessons", path: "/lessons" },
+          { name: "Series", path: "/lessons" },
         ]);
         return [
           collectionPageNode(origin, {
             path: "/lessons",
-            name: "Lessons",
+            name: "Series",
             description,
             inLanguage: site.locale,
             breadcrumbId: crumbs["@id"] as string,
@@ -76,20 +76,17 @@ function LessonsPage() {
 
   return (
     <main id="main" tabIndex={-1} className="container-page pt-10 pb-8 outline-none sm:pt-14">
-      <p {...enter(0, "text-xs font-semibold tracking-[0.1em] text-subtle uppercase")}>Courses</p>
-      <h1 {...enter(1, "mt-1.5 font-serif text-4xl font-medium tracking-tight sm:text-5xl")}>
-        Lessons
-      </h1>
+      <h1 {...enter(0, "font-serif text-4xl font-medium tracking-tight sm:text-5xl")}>Series</h1>
       {lessons.length > 0 && (
-        <p {...enter(2, "mt-2 text-muted")}>
-          {plural(lessons.length, "course")}, {plural(parts, "part")}
+        <p {...enter(1, "mt-2 text-muted")}>
+          {lessons.length} series, {plural(parts, "part")}
           {minutes ? `, about ${formatDuration(minutes)} of reading` : ""}.
         </p>
       )}
 
       {lessons.length === 0 ? (
-        <EmptyState className="mt-10" title="No lessons yet">
-          Courses appear here once a folder of notes is synced from the vault.
+        <EmptyState className="mt-10" title="No series yet">
+          Series appear here once a folder of notes is synced from the vault.
         </EmptyState>
       ) : (
         <LessonsGrid lessons={lessons} className="mt-10" />

@@ -4,6 +4,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { indexFor } from "../content/posts.server.ts";
 import { resolveSiteUrl } from "../content/site-url.server.ts";
+import { tagLabel } from "../lib/tag-label.ts";
 import { escapeXml } from "../lib/xml.ts";
 import { resolveAuthors, site } from "../site.config.ts";
 
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/rss.xml")({
                   ? p.authors
                   : ((p.folder ? folderAuthors.get(p.folder) : null) ?? []),
               ).map((a) => `      <dc:creator>${escapeXml(a.name)}</dc:creator>`),
-              ...p.tags.map((t) => `      <category>${escapeXml(t)}</category>`),
+              ...p.tags.map((t) => `      <category>${escapeXml(tagLabel(t))}</category>`),
               "    </item>",
             ].join("\n");
           })

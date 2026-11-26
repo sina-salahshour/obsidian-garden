@@ -23,7 +23,7 @@ export function PostList({
 }) {
   return (
     <LayoutGroup>
-      <ul className={cn("grid gap-4", className)}>
+      <ul className={cn("grid grid-cols-1 gap-4", className)}>
         <AnimatePresence mode="popLayout" initial={false}>
           {posts.map((post, i) => (
             <motion.li

@@ -12,6 +12,7 @@ import { plural } from "~/lib/format";
 import { spring } from "~/lib/motion";
 import { breadcrumbNode, collectionPageNode } from "~/lib/schema";
 import { seo, siteUrlFrom } from "~/lib/seo";
+import { tagLabel } from "~/lib/tag-label";
 import { site } from "~/site.config";
 
 const searchSchema = z.object({
@@ -53,9 +54,11 @@ export const Route = createFileRoute("/posts/")({
     const siteUrl = siteUrlFrom(matches);
     const { folder, standalone, sort, page } = match.search;
     const tag = match.search.tag?.toLowerCase().replace(/^#/, "") || undefined;
-    const base = tag ? `#${tag}` : "All posts";
+    const base = tag ? `#${tagLabel(tag)}` : "All posts";
     const title = page > 1 ? `${base} (page ${page})` : base;
-    const description = tag ? `Notes tagged #${tag}.` : "Every note in the garden, newest first.";
+    const description = tag
+      ? `Notes tagged #${tagLabel(tag)}.`
+      : "Every note in the garden, newest first.";
     const path = tag ? `/posts?tag=${encodeURIComponent(tag)}` : "/posts";
     // Only the first page of the plain list and of each known tag is indexable; pages, folder filters and
     // other sorts are views of the same notes (still followed), and an unknown tag is an empty page.
@@ -126,7 +129,7 @@ function PostsPage() {
             {search.tag ? (
               <>
                 <span className="text-subtle">#</span>
-                {search.tag}
+                {tagLabel(search.tag)}
               </>
             ) : activeFolder ? (
               activeFolder.title
@@ -170,7 +173,7 @@ function PostsPage() {
           value={search.tag}
           options={[
             { value: undefined, label: "All" },
-            ...topTags.map((t) => ({ value: t.tag, label: `#${t.tag}`, count: t.count })),
+            ...topTags.map((t) => ({ value: t.tag, label: `#${tagLabel(t.tag)}`, count: t.count })),
           ]}
           renderOption={(opt, props) => (
             <Link

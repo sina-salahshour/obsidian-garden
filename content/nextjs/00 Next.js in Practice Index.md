@@ -1,5 +1,5 @@
 ---
-description: Map of the Next.js in Practice course, with a one-line summary of every part and a diagram of how a request flows through Next.js 16.4.3.
+description: Map of the Next.js in Practice series, with a one-line summary of every part and a diagram of how a request flows through Next.js 16.4.3.
 tags: [nextjs, nextjs-course, moc]
 next-version: 16.4.3
 aliases: [Next.js Index, Next.js MOC]

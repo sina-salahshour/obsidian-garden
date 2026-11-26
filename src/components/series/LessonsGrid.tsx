@@ -207,7 +207,7 @@ export function LessonsGridSkeleton({
 }) {
   return (
     <div className={cn(gridClass, className)} role="status">
-      <span className="sr-only">Loading lessons…</span>
+      <span className="sr-only">Loading series…</span>
       {Array.from({ length: count }, (_, i) => (
         <LessonTileSkeleton key={i} compact={compact} />
       ))}

@@ -6,6 +6,7 @@ import { cn } from "~/lib/cn";
 import { formatDate, formatReading, humanize, isoDate, partNumber } from "~/lib/format";
 import { useCardHover } from "~/lib/hooks";
 import { duration, spring } from "~/lib/motion";
+import { tagLabel } from "~/lib/tag-label";
 import { PrivateBadge } from "../ui/Badge";
 import { ArrowRight } from "../ui/icons";
 import { TagChip } from "../ui/TagChip";
@@ -144,7 +145,7 @@ export function PostCard({
             {post.tags.length > 0 && (
               <p className="mt-3 flex flex-wrap gap-x-2.5 gap-y-1 border-t border-line pt-2.5 text-xs text-subtle">
                 {post.tags.map((t) => (
-                  <span key={t}>#{t}</span>
+                  <span key={t}>#{tagLabel(t)}</span>
                 ))}
               </p>
             )}

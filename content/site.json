@@ -6,7 +6,7 @@
     "Frontend notes",
     "Source-code deep dives"
   ],
-  "heroDescription": "I write these courses for myself, mostly about frontend development. They collect explanations, tricks, and recipes I use, alongside deep dives into the React and Next.js source code.",
+  "heroDescription": "I write these series for myself, mostly about frontend development. They collect explanations, tricks, and recipes I use, alongside deep dives into the React and Next.js source code.",
   "colorPalettes": [
     {
       "id": "garden",

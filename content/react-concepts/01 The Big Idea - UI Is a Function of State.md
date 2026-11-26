@@ -12,7 +12,7 @@ created: 2026-10-25T12:06:55.939Z
 
 Every React developer has had the moment where something feels like magic. You call `setItems`, and a new row appears in the list. You never touched the list. You never found a DOM node, never called `appendChild`, never removed the "empty list" message. How did the screen know?
 
-The answer is one idea, and the rest of this course is about how React makes it work.
+The answer is one idea, and the rest of this series is about how React makes it work.
 
 ## Two ways to build a UI
 
@@ -89,7 +89,7 @@ You own the first step. React owns the other two. That is why React code rarely 
 
 ## Render and commit: the two phases
 
-Everything React does after a state change falls into two phases. You'll see these words in every part of this course, so it pays to pin them down now.
+Everything React does after a state change falls into two phases. You'll see these words in every part of this series, so it pays to pin them down now.
 
 ```mermaid
 flowchart LR

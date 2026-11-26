@@ -1,4 +1,5 @@
 import type { GraphData } from "~/content/types";
+import { tagLabel } from "~/lib/tag-label";
 
 export interface GraphGroup {
   id: string;
@@ -52,7 +53,7 @@ export function computeGroups(nodes: GraphData["nodes"]): {
         .filter((t) => !tooCommon(t) && (freq.get(t) ?? 0) >= 2)
         .toSorted((a, b) => (freq.get(b) ?? 0) - (freq.get(a) ?? 0) || a.localeCompare(b))[0] ??
       null;
-    label = (k) => `#${k}`;
+    label = (k) => `#${tagLabel(k)}`;
   }
 
   const counts = new Map<string, number>();

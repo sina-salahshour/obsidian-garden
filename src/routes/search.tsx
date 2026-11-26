@@ -13,6 +13,7 @@ import { findRanges } from "~/lib/highlight";
 import { useDebounced } from "~/lib/hooks";
 import { ease, spring } from "~/lib/motion";
 import { seo, siteUrlFrom } from "~/lib/seo";
+import { tagLabel } from "~/lib/tag-label";
 
 /*
  * ssr: "data-only" — the loader runs on the server for the first request, so results arrive with
@@ -178,7 +179,7 @@ function SearchPage() {
                     {hit.tags.length > 0 && (
                       <span className="mt-2 flex flex-wrap gap-x-2 text-xs text-subtle">
                         {hit.tags.slice(0, 4).map((t) => (
-                          <span key={t}>#{t}</span>
+                          <span key={t}>#{tagLabel(t)}</span>
                         ))}
                       </span>
                     )}

@@ -11,7 +11,7 @@ created: 2026-10-25T19:31:26.796Z
 > [!summary] TL;DR
 > Every folder under `app/` is a **route segment** and every special file (`layout`, `page`, `template`, `error`, `loading`, `not-found`, `default`, ...) is a slot on that segment. At build time Next walks the folders and emits a **loader tree**: nested tuples of `[segment, parallelRoutes, modules, staticSiblings]`. At render time each level of that tree becomes the same fixed stack of components: your layout, then a `LayoutRouter` per slot that wraps the child in template → error boundary → `Suspense` (from `loading`) → not-found boundary. Layouts persist across navigations because the server only renders from the first segment that changed. Route groups vanish from the URL, `@slots` become extra layout props, and interception is a rewrite keyed on the `Next-Url` header.
 
-This course is pinned to **Next.js v16.4.3**. Every footnote links to the exact lines at that tag. The React side (Suspense, transitions, keys) is covered in the vault's React courses, and this part links there instead of re-explaining it.
+This series is pinned to **Next.js v16.4.3**. Every footnote links to the exact lines at that tag. The React side (Suspense, transitions, keys) is covered in the vault's React series, and this part links there instead of re-explaining it.
 
 ## The running example
 

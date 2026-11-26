@@ -9,7 +9,6 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { site } from "~/site.config";
 import { cn } from "~/lib/cn";
-import { plural } from "~/lib/format";
 import { fade, hoverTrigger, spring } from "~/lib/motion";
 import { palette, usePaletteOpen } from "~/lib/palette";
 import { LessonsGrid, LessonsGridSkeleton } from "../series/LessonsGrid";
@@ -199,7 +198,7 @@ function MobileNav() {
   return (
     <nav aria-label="Sections" className="container-page -mt-1 pb-2 md:hidden">
       <ul className="flex gap-1">
-        {[{ to: "/lessons", label: "Lessons" } as const, ...nav]
+        {[{ to: "/lessons", label: "Series" } as const, ...nav]
           .filter((n) => n.to !== "/graph")
           .map((item) => (
             <li key={item.to}>
@@ -271,7 +270,7 @@ const panelLinks = (el: HTMLElement | null) => [
 ];
 
 /**
- * Desktop "Lessons" disclosure: a button that opens a panel of course tiles under the header.
+ * Desktop "Series" disclosure: a button that opens a panel of series tiles under the header.
  * Data is fetched once on the first hover/focus/open (session cache in useLessons), so other
  * pages pay nothing for it. Closes on Escape (focus returns to the button), outside click,
  * focus leaving, route change, or choosing a tile. ArrowDown on the button opens it and moves
@@ -382,7 +381,7 @@ function LessonsMenu({ paletteOpen }: { paletteOpen: boolean }) {
             className="absolute inset-0 rounded-full bg-sunken"
           />
         )}
-        <span className="relative">Lessons</span>
+        <span className="relative">Series</span>
         {active && <span className="sr-only"> (current section)</span>}
         <motion.span
           className="relative inline-flex text-subtle"
@@ -401,7 +400,7 @@ function LessonsMenu({ paletteOpen }: { paletteOpen: boolean }) {
             id={PANEL_ID}
             ref={panel}
             role="region"
-            aria-label="Lessons"
+            aria-label="Series"
             tabIndex={-1}
             variants={fade}
             initial="hidden"
@@ -417,7 +416,7 @@ function LessonsMenu({ paletteOpen }: { paletteOpen: boolean }) {
                     role="alert"
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-line-strong px-4 py-5 text-sm"
                   >
-                    <span className="text-muted">The lessons could not be loaded.</span>
+                    <span className="text-muted">The series could not be loaded.</span>
                     <button
                       type="button"
                       onClick={prefetchLessons}
@@ -429,7 +428,7 @@ function LessonsMenu({ paletteOpen }: { paletteOpen: boolean }) {
                 ) : lessons.status !== "ready" ? (
                   <LessonsGridSkeleton compact />
                 ) : folders.length === 0 ? (
-                  <p className="px-1 py-6 text-center text-sm text-muted">No lessons yet.</p>
+                  <p className="px-1 py-6 text-center text-sm text-muted">No series yet.</p>
                 ) : (
                   <LessonsGrid
                     variant="panel"
@@ -439,7 +438,7 @@ function LessonsMenu({ paletteOpen }: { paletteOpen: boolean }) {
                 )}
                 <div className="mt-3 flex items-center justify-between gap-4 border-t border-line px-1 pt-3 text-sm">
                   <span className="text-subtle">
-                    {lessons.status === "ready" ? plural(folders.length, "course") : "Courses"}
+                    {lessons.status === "ready" ? `${folders.length} series` : "Series"}
                   </span>
                   <Link
                     tabIndex={0}
@@ -447,7 +446,7 @@ function LessonsMenu({ paletteOpen }: { paletteOpen: boolean }) {
                     onClick={close}
                     className="group inline-flex items-center gap-1.5 rounded-full font-medium text-muted hover:text-fg"
                   >
-                    All lessons
+                    All series
                     <ArrowRight
                       size={15}
                       className="text-accent transition-transform group-hover:translate-x-0.5"

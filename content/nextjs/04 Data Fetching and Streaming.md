@@ -13,7 +13,7 @@ created: 2026-10-25T19:45:37.963Z
 
 The earlier parts built the route tree ([[01 The App Router - Files, Segments and Layouts|App Router]]) and drew the server/client line ([[02 Server and Client Components|Server and Client Components]]). This part puts data into that tree. It explains how a request gets its data, what Next.js does with the `fetch` you call, why the request APIs became promises in Next.js 15 and 16, and how streaming turns slow data into a page that paints in pieces.
 
-The running example is the same small notes app used across the course: `/notes` lists notes, `/notes/[id]` shows one note with its comments and an author card.
+The running example is the same small notes app used across the series: `/notes` lists notes, `/notes/[id]` shows one note with its comments and an author card.
 
 ## Fetching in a Server Component
 

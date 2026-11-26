@@ -53,9 +53,7 @@ function Home() {
 
       {featured.length > 0 && (
         <section aria-labelledby="series-title" className="container-page mt-4 sm:mt-8">
-          <SectionHeading id="series-title" eyebrow="Courses">
-            Series
-          </SectionHeading>
+          <SectionHeading id="series-title">Series</SectionHeading>
           <Reveal className="mt-6 grid gap-6" delay={0.1}>
             {featured.map(({ folder, parts }, i) => (
               <RevealItem key={folder.slug} index={i + 3}>
@@ -220,13 +218,17 @@ function SectionHeading({
   children,
 }: {
   id: string;
-  eyebrow: string;
+  eyebrow?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.1em] text-subtle uppercase">{eyebrow}</p>
-      <h2 id={id} className="mt-1.5 font-serif text-3xl font-medium tracking-tight">
+      {eyebrow && (
+        <p className="mb-1.5 text-xs font-semibold tracking-[0.1em] text-subtle uppercase">
+          {eyebrow}
+        </p>
+      )}
+      <h2 id={id} className="font-serif text-3xl font-medium tracking-tight">
         {children}
       </h2>
     </div>

@@ -8,6 +8,7 @@
 //   ```mermaid      -> <figure data-mermaid="src" class="mermaid"><pre><code>src</code></pre></figure>
 //   ==x== -> <mark>, %%c%% removed, #tag -> a.tag, " ^block-id" removed
 import { slug as githubSlug } from "github-slugger";
+import { tagLabel } from "../../lib/tag-label.ts";
 import type {
   Blockquote,
   Code,
@@ -342,7 +343,7 @@ const tagSplitter: Splitter = (value, ctx) =>
       type: "link",
       url: `/posts?tag=${encodeURIComponent(tag)}`,
       data: { hProperties: { className: ["tag"], dataTag: tag }, obsidian: true },
-      children: [text(`#${raw}`)],
+      children: [text(`#${tagLabel(raw)}`)],
     } as PhrasingContent;
     return [...lead, link, ...(rest ? [text(rest)] : [])];
   });

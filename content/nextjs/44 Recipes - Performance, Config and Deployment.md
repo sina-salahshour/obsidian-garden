@@ -509,7 +509,7 @@ These are the items from the recipes above that are cheap to check before the fi
 
 ## Summary
 
-Performance and deployment problems in Next.js 16 sort into two families. Build-time decisions get frozen into the artifact: the bundler (Turbopack unless you say otherwise), the `NEXT_PUBLIC_` values, the downloaded fonts, the serialized config in `server.js`, and the action encryption key. Per-process state gets multiplied when you self-host: the ISR store and the `'use cache'` store are in memory, so each pod sees its own world until you plug in shared handlers. Find bundle weight with `next analyze` and move data-only work to Server Components; fix deployments by building once, copying the static folders, and giving every replica the same cache, deployment ID and key. This closes the course; the [[00 Next.js in Practice Index|Index]] links back to every feature and pattern part.
+Performance and deployment problems in Next.js 16 sort into two families. Build-time decisions get frozen into the artifact: the bundler (Turbopack unless you say otherwise), the `NEXT_PUBLIC_` values, the downloaded fonts, the serialized config in `server.js`, and the action encryption key. Per-process state gets multiplied when you self-host: the ISR store and the `'use cache'` store are in memory, so each pod sees its own world until you plug in shared handlers. Find bundle weight with `next analyze` and move data-only work to Server Components; fix deployments by building once, copying the static folders, and giving every replica the same cache, deployment ID and key. This closes the series; the [[00 Next.js in Practice Index|Index]] links back to every feature and pattern part.
 
 ### Key takeaways
 

@@ -20,6 +20,7 @@ import { motion } from "motion/react";
 import { enter, hoverTrigger } from "~/lib/motion";
 import { articleNode, breadcrumbNode } from "~/lib/schema";
 import { pageShot, seo, siteUrlFrom, socialImage } from "~/lib/seo";
+import { tagLabel } from "~/lib/tag-label";
 import { resolveAuthors, site } from "~/site.config";
 
 export const Route = createFileRoute("/posts/$")({
@@ -71,7 +72,7 @@ export const Route = createFileRoute("/posts/$")({
       type: "article",
       publishedTime: meta.date,
       modifiedTime: meta.updated,
-      tags: meta.tags,
+      tags: meta.tags.map(tagLabel),
       section: folder?.title,
       authors,
       noindex: meta.visibility === "private" || meta.noindex,
@@ -86,7 +87,7 @@ export const Route = createFileRoute("/posts/$")({
           dateModified: meta.updated,
           authors,
           publisher: site.defaultAuthor,
-          tags: meta.tags,
+          tags: meta.tags.map(tagLabel),
           wordCount: meta.wordCount,
           readingMinutes: meta.readingMinutes,
           inLanguage: site.locale,
@@ -97,7 +98,7 @@ export const Route = createFileRoute("/posts/$")({
           { name: "Home", path: "/" },
           ...(folder
             ? [
-                { name: "Lessons", path: "/lessons" },
+                { name: "Series", path: "/lessons" },
                 { name: folder.title, path: `/series/${folder.slug}` },
               ]
             : [{ name: "Notes", path: "/posts" }]),

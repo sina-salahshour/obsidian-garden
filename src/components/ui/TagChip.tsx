@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { cn } from "~/lib/cn";
 import { spring } from "~/lib/motion";
+import { tagLabel } from "~/lib/tag-label";
 
 /** A tag that links to the filtered post list. */
 export function TagChip({
@@ -26,7 +27,7 @@ export function TagChip({
       )}
     >
       <span className="text-subtle">#</span>
-      {tag}
+      {tagLabel(tag)}
       {count != null && <span className="ml-0.5 tabular-nums text-subtle">{count}</span>}
     </Link>
   );

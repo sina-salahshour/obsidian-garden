@@ -13,6 +13,7 @@ import { motion } from "motion/react";
 import { enter, hoverTrigger } from "~/lib/motion";
 import { breadcrumbNode, courseNode } from "~/lib/schema";
 import { pageShot, seo, siteUrlFrom, socialImage } from "~/lib/seo";
+import { tagLabel } from "~/lib/tag-label";
 import { resolveAuthors, site } from "~/site.config";
 
 /** The course's most common tags (a keyword list, not every tag any part carries). */
@@ -22,7 +23,7 @@ function topTags(parts: { tags: string[] }[], limit = 10): string[] {
   return [...counts]
     .toSorted((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, limit)
-    .map(([t]) => t);
+    .map(([t]) => tagLabel(t));
 }
 
 export const Route = createFileRoute("/series/$folder")({
@@ -70,7 +71,7 @@ export const Route = createFileRoute("/series/$folder")({
         }),
         breadcrumbNode(origin, path, [
           { name: "Home", path: "/" },
-          { name: "Lessons", path: "/lessons" },
+          { name: "Series", path: "/lessons" },
           { name: folder.title, path },
         ]),
       ],
@@ -103,7 +104,7 @@ function SeriesPage() {
               className="group inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-fg"
             >
               <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />{" "}
-              All lessons
+              All series
             </Link>
           </div>
           <p {...enter(1)}>

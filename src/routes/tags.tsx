@@ -9,6 +9,7 @@ import { plural } from "~/lib/format";
 import { spring } from "~/lib/motion";
 import { breadcrumbNode, collectionPageNode } from "~/lib/schema";
 import { seo, siteUrlFrom } from "~/lib/seo";
+import { tagLabel } from "~/lib/tag-label";
 import { site } from "~/site.config";
 
 export const Route = createFileRoute("/tags")({
@@ -81,7 +82,7 @@ function TagsPage() {
                       <span className="text-subtle transition-colors group-hover:text-accent">
                         #
                       </span>
-                      {t.tag}
+                      {tagLabel(t.tag)}
                     </span>
                     <span className="text-sm text-muted tabular-nums">{t.count}</span>
                   </span>

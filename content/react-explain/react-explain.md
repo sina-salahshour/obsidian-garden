@@ -9,7 +9,7 @@ created: 2026-10-27T09:51:45.109Z
 
 # React Internals
 
-You have written `useState` a thousand times. This course opens the box and follows the real code paths inside React: what `createRoot` builds, how an update picks a priority, how the work loop walks the fiber tree, where your hooks are stored, and what the commit phase does to the DOM. The last parts show how the React Compiler changes your components so React can skip work it would otherwise redo.
+You have written `useState` a thousand times. This series opens the box and follows the real code paths inside React: what `createRoot` builds, how an update picks a priority, how the work loop walks the fiber tree, where your hooks are stored, and what the commit phase does to the DOM. The last parts show how the React Compiler changes your components so React can skip work it would otherwise redo.
 
 It is written for working React developers who want a working model of the runtime instead of folklore. You do not need to have read React's source before. Every claim links to the exact lines on GitHub, and every page is pinned to **React v19.3.1**, so the line numbers stay true.
 
