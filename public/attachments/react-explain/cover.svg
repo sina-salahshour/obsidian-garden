@@ -1,39 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <!-- React Internals: the work-in-progress fiber tree (child / sibling / return pointers) mid
-       render, its alternate (current) tree drawn dashed behind. Colours are site tokens. -->
-  <!-- current tree (alternate), offset behind -->
-  <g stroke="var(--line-strong, #d4cec3)" stroke-width="2" stroke-dasharray="5 7">
-    <rect x="367" y="48" width="104" height="48" rx="14"/>
-    <rect x="367" y="156" width="104" height="48" rx="14"/>
-    <rect x="217" y="266" width="104" height="48" rx="14"/>
-    <rect x="367" y="266" width="104" height="48" rx="14"/>
-    <rect x="517" y="266" width="104" height="48" rx="14"/>
-    <path d="M419 96v60M419 204c0 34-150 28-150 62"/>
+  <!-- Current fibers peek out behind their work-in-progress records. -->
+  <g stroke="var(--line-strong, #d4cec3)" stroke-width="2" stroke-dasharray="6 8">
+    <rect x="339" y="76" width="156" height="72" rx="19"/>
+    <rect x="125" y="230" width="138" height="76" rx="19"/>
+    <rect x="332" y="221" width="170" height="94" rx="22"/>
+    <rect x="573" y="230" width="138" height="76" rx="19"/>
   </g>
-  <!-- pointers: child (down), sibling (across), return (back up) -->
+
+  <!-- The parent descends to its first child. Siblings point across the row. -->
   <g stroke="var(--subtle, #8d867b)" stroke-width="2.5">
-    <path d="M389 120v52M383 166l6 7 6-7"/>
-    <path d="M389 228c0 34-150 26-150 58M233 280l6 7 6-6"/>
-    <path d="M293 310h40M327 304l7 6-7 6"/>
-    <path d="M443 310h40M477 304l7 6-7 6"/>
-    <path d="M389 334v52M383 380l6 7 6-7"/>
+    <path d="M374 163v10q0 25-25 25H199q-24 0-24 24v18m-7-8 7 8 7-8"/>
+    <path d="M485 284h63m-8-7 8 7-8 7"/>
+    <path d="M400 331v36m-7-8 7 8 7-8"/>
   </g>
-  <path d="M601 294c40-20 30-94-152-94M456 194l-7 6 7 6" stroke="var(--subtle, #8d867b)" stroke-width="2" stroke-dasharray="2 7" opacity=".9"/>
-  <!-- fibers -->
-  <g stroke="var(--subtle, #8d867b)" stroke-width="2.5" fill="var(--surface, #ffffff)">
-    <rect x="337" y="72" width="104" height="48" rx="14"/>
-    <rect x="337" y="180" width="104" height="48" rx="14"/>
-    <rect x="187" y="286" width="104" height="48" rx="14"/>
-    <rect x="487" y="286" width="104" height="48" rx="14" stroke="var(--line-strong, #d4cec3)"/>
-    <rect x="337" y="392" width="104" height="48" rx="14" stroke="var(--line-strong, #d4cec3)"/>
+  <!-- A return pointer from the last sibling leads back to the parent. -->
+  <path d="M638 245v-68q0-49-49-49H484m8-7-8 7 8 7" stroke="var(--subtle, #8d867b)" stroke-width="2"/>
+  <path d="M246 284h60m-8-7 8 7-8 7" stroke="var(--accent, #5e81ac)" stroke-width="2.5"/>
+
+  <!-- Fiber records. The small register at the left carries the node's tag. -->
+  <g fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2.5">
+    <rect x="322" y="91" width="156" height="72" rx="19"/>
+    <rect x="108" y="246" width="138" height="76" rx="19"/>
+    <rect x="556" y="246" width="138" height="76" rx="19"/>
+    <circle cx="400" cy="393" r="19"/>
   </g>
-  <!-- the fiber being worked on -->
-  <rect x="337" y="286" width="104" height="48" rx="14" fill="var(--surface, #ffffff)"/>
-  <rect x="337" y="286" width="104" height="48" rx="14" fill="var(--accent, #5e81ac)" fill-opacity=".12" stroke="var(--accent, #5e81ac)" stroke-width="2.5"/>
-  <!-- placeholder labels (no text) -->
-  <g stroke-width="6">
-    <path d="M361 96h44M361 204h56M211 310h36M511 310h48M361 416h40" stroke="var(--line-strong, #d4cec3)"/>
-    <path d="M361 310h52" stroke="var(--accent, #5e81ac)"/>
+  <g stroke="var(--line-strong, #d4cec3)" stroke-width="2">
+    <path d="M374 92v70M154 247v74M602 247v74"/>
   </g>
-  <circle cx="275" cy="310" r="5" fill="var(--subtle, #8d867b)"/>
+  <g stroke="var(--line-strong, #d4cec3)" stroke-width="8">
+    <path d="M393 119h59m-59 16h35M174 276h47m-47 16h27M622 276h47m-47 16h28"/>
+  </g>
+  <g stroke="var(--subtle, #8d867b)" stroke-width="2.5">
+    <circle cx="131" cy="284" r="7"/>
+    <circle cx="579" cy="284" r="7"/>
+  </g>
+  <!-- A branching glyph identifies the parent record. -->
+  <path d="M340 136v-16m0 12c0-8 14-3 14-13" stroke="var(--fg, #1f1d1a)" stroke-width="3"/>
+  <g fill="var(--fg, #1f1d1a)">
+    <circle cx="340" cy="137" r="3.5"/><circle cx="340" cy="118" r="3.5"/><circle cx="354" cy="118" r="3.5"/>
+  </g>
+
+  <!-- The render loop is visiting this fiber. Its child is the next level down. -->
+  <rect x="315" y="237" width="170" height="94" rx="22" fill="var(--surface, #ffffff)"/>
+  <g stroke="var(--accent, #5e81ac)">
+    <rect x="315" y="237" width="170" height="94" rx="22" fill="var(--accent, #5e81ac)" fill-opacity=".12" stroke-width="2.5"/>
+    <path d="M371 238v92" stroke-width="2" opacity=".55"/>
+    <circle cx="343" cy="284" r="12" stroke-width="2.5"/>
+    <path d="M391 274h65m-65 20h39" stroke-width="8"/>
+  </g>
+  <circle cx="343" cy="284" r="5" fill="var(--accent, #5e81ac)"/>
+  <circle cx="400" cy="393" r="6" fill="var(--subtle, #8d867b)"/>
 </svg>

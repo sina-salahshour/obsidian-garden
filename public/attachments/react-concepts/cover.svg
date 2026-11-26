@@ -1,35 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" fill="none" stroke-linecap="round" stroke-linejoin="round">
-  <!-- How React Works: state flows into a component function, which returns the UI; an event in
-       the UI sets new state and the loop runs again. Colours are site tokens. -->
-  <g transform="translate(-24 -26)">
-    <!-- state -->
-    <circle cx="190" cy="250" r="54" fill="var(--surface, #ffffff)"/>
-    <circle cx="190" cy="250" r="54" fill="var(--accent, #5e81ac)" fill-opacity=".12" stroke="var(--accent, #5e81ac)" stroke-width="2.5"/>
-    <circle cx="190" cy="250" r="13" fill="var(--accent, #5e81ac)"/>
-    <!-- arrows -->
-    <g stroke="var(--subtle, #8d867b)" stroke-width="2.5">
-      <path d="M262 250h52M307 243l8 7-8 7"/>
-      <path d="M470 250h52M515 243l8 7-8 7"/>
-    </g>
-    <!-- component: f( state ) -->
-    <rect x="330" y="186" width="128" height="128" rx="28" fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2.5"/>
-    <path d="M375 216c-17 20-17 48 0 68M413 216c17 20 17 48 0 68" stroke="var(--fg, #1f1d1a)" stroke-width="3"/>
-    <circle cx="394" cy="250" r="8" fill="var(--accent, #5e81ac)"/>
-    <!-- the UI it returns -->
-    <rect x="538" y="166" width="176" height="168" rx="18" fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2.5"/>
-    <path d="M538 206h176" stroke="var(--line-strong, #d4cec3)" stroke-width="2"/>
-    <g fill="var(--line-strong, #d4cec3)">
-      <circle cx="560" cy="186" r="5"/>
-      <circle cx="578" cy="186" r="5"/>
-    </g>
-    <g stroke-width="8">
-      <path d="M562 232h96" stroke="var(--line-strong, #d4cec3)"/>
-      <path d="M562 254h128M562 274h80" stroke="var(--line, #e6e2da)"/>
-    </g>
-    <rect x="562" y="292" width="74" height="26" rx="13" fill="var(--accent, #5e81ac)" fill-opacity=".12" stroke="var(--accent, #5e81ac)" stroke-width="2"/>
-    <circle cx="578" cy="305" r="5" fill="var(--accent, #5e81ac)"/>
-    <path d="M592 305h30" stroke="var(--accent, #5e81ac)" stroke-width="4" stroke-opacity=".6"/>
-    <!-- event -> setState -> render again -->
-    <path d="M599 334c0 96-409 104-409 -20M183 322l7-8 7 8" stroke="var(--accent, #5e81ac)" stroke-width="2" stroke-dasharray="2 8" stroke-opacity=".8"/>
+  <!-- An Add event schedules the next render. -->
+  <g stroke="var(--accent, #5e81ac)" stroke-width="2.5">
+    <path d="M633 338v6c0 31-19 47-50 47H220c-43 0-64-22-64-60v-34" stroke-dasharray="2 8"/>
+    <path d="m148 305 8-9 8 9"/>
   </g>
+
+  <!-- The current list, with a newly added item. -->
+  <circle cx="156" cy="227" r="56" fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2.5"/>
+  <path d="M140 227h32" stroke="var(--line-strong, #d4cec3)" stroke-width="2"/>
+  <circle cx="140" cy="227" r="9" fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2"/>
+  <circle cx="172" cy="227" r="10" fill="var(--accent, #5e81ac)"/>
+
+  <!-- State feeds the component, which returns the list UI. -->
+  <g stroke="var(--subtle, #8d867b)" stroke-width="2.5">
+    <path d="M225 227h48m-8-7 8 7-8 7"/>
+    <path d="M407 227h48m-8-7 8 7-8 7"/>
+  </g>
+  <rect x="288" y="175" width="106" height="104" rx="25" fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2.5"/>
+  <path d="M326 202c-14 13-14 37 0 50m30-50c14 13 14 37 0 50" stroke="var(--fg, #1f1d1a)" stroke-width="3"/>
+  <circle cx="341" cy="227" r="8" fill="var(--accent, #5e81ac)"/>
+
+  <!-- The same item appears in the shopping list. -->
+  <rect x="470" y="111" width="236" height="216" rx="22" fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2.5"/>
+  <path d="M471 166h234" stroke="var(--line-strong, #d4cec3)" stroke-width="2"/>
+  <path d="M494 139h79" stroke="var(--subtle, #8d867b)" stroke-width="8"/>
+  <circle cx="511" cy="201" r="8" stroke="var(--subtle, #8d867b)" stroke-width="2"/>
+  <path d="M537 201h82" stroke="var(--line-strong, #d4cec3)" stroke-width="8"/>
+  <rect x="489" y="224" width="198" height="43" rx="15" fill="var(--accent, #5e81ac)" fill-opacity=".12"/>
+  <circle cx="511" cy="245.5" r="9" fill="var(--accent, #5e81ac)"/>
+  <path d="M537 245.5h56" stroke="var(--accent, #5e81ac)" stroke-width="8"/>
+
+  <!-- An input and its Add control share the lower edge. -->
+  <rect x="492" y="302" width="163" height="36" rx="18" fill="var(--surface, #ffffff)" stroke="var(--subtle, #8d867b)" stroke-width="2"/>
+  <path d="M508 314v12" stroke="var(--line-strong, #d4cec3)" stroke-width="2"/>
+  <path d="M612 304v32" stroke="var(--line-strong, #d4cec3)" stroke-width="2"/>
+  <path d="M626 320h14m-7-7v14" stroke="var(--fg, #1f1d1a)" stroke-width="3"/>
 </svg>

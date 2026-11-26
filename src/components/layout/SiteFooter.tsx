@@ -15,7 +15,7 @@ export function SiteFooter() {
             {...hoverTrigger}
             variants={logoTilt}
             transition={spring.snappy}
-            className="inline-flex"
+            className="inline-flex shrink-0"
           >
             <Logo className="size-6" />
           </motion.span>

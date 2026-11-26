@@ -35,18 +35,34 @@ export const logoTilt: Variants = { rest: { rotate: 0 }, hover: { rotate: -8 } }
 /** The site mark: three linked nodes, the accent one "active". */
 export function Logo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 28 28" className={cn("size-7", className)} aria-hidden="true" fill="none">
-      <rect x="0.75" y="0.75" width="26.5" height="26.5" rx="8" className="fill-fg" />
+    <svg
+      viewBox="0 0 28 28"
+      className={cn(
+        "size-7 shrink-0 overflow-visible drop-shadow-[0_1px_2px_color-mix(in_oklab,var(--scrim)_55%,transparent)]",
+        className,
+      )}
+      aria-hidden="true"
+      fill="none"
+    >
+      <rect
+        x="1.5"
+        y="1.5"
+        width="25"
+        height="25"
+        rx="7.5"
+        fill="var(--surface)"
+        stroke="color-mix(in oklab, var(--fg) 36%, var(--line-strong))"
+      />
       <path
         d="M9 18.5 14 9l5 9.5"
-        stroke="var(--bg)"
+        stroke="var(--fg)"
         strokeOpacity=".55"
         strokeWidth="1.4"
         strokeLinecap="round"
       />
       <motion.circle cx="14" cy="9" r="2.6" fill="var(--accent)" variants={logoNode} />
-      <circle cx="9" cy="18.5" r="2.2" fill="var(--bg)" />
-      <circle cx="19" cy="18.5" r="2.2" fill="var(--bg)" />
+      <circle cx="9" cy="18.5" r="2.2" fill="var(--fg)" />
+      <circle cx="19" cy="18.5" r="2.2" fill="var(--fg)" />
     </svg>
   );
 }
@@ -110,7 +126,7 @@ export function SiteHeader() {
               variants={logoTilt}
               whileTap={{ scale: 0.92 }}
               transition={spring.snappy}
-              className="inline-flex"
+              className="inline-flex shrink-0"
             >
               <Logo />
             </motion.span>
